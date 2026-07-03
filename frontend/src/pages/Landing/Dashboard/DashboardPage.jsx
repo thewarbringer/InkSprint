@@ -4,19 +4,16 @@ import { Target, Flame, Clock, Sparkles, Zap, Users2 } from "lucide-react";
 import AppShell from "../../../components/layout/AppShell.jsx";
 import { StatCard, ProgressBar, Avatar, Badge } from "../../../components/common/UIAtoms.jsx";
 import { staggerContainer, fadeInUp } from "../../../animations/variants.js";
-import {
-  CURRENT_USER,
-  DASHBOARD_STATS,
-  RECENT_MATCHES,
-  FRIENDS,
-  DAILY_CHALLENGE,
-} from "../../../constants/appData.js";
+import { CURRENT_USER, DASHBOARD_STATS, RECENT_MATCHES, FRIENDS, DAILY_CHALLENGE } from "../../../constants/appData.js";
+import { getCurrentUser } from "../../../utils/auth.js";
 
 const ICONS = { Target, Flame, Clock, Sparkles };
 
 export default function DashboardPage() {
+  const currentUser = getCurrentUser() || CURRENT_USER;
+
   return (
-    <AppShell title={`Welcome back, ${CURRENT_USER.username}`} subtitle="Here's where you left off.">
+    <AppShell title={`Welcome back, ${currentUser.username}`} subtitle="Here's where you left off.">
       {/* Quick actions */}
       <motion.div
         variants={staggerContainer(0.08)}

@@ -7,8 +7,14 @@ const app = express()
 
 app.use(cors())
 app.use(express.json())
+
 // Initialize MongoDB connection
 connectDB();
+
+const authRoutes = require('./routes/authRoutes');
+const activeGameRoutes = require('./routes/activeGameRoutes');
+app.use('/api/auth', authRoutes);
+app.use('/api/active-game', activeGameRoutes);
 
 app.get('/', (req, res) => {
     res.send('hello')

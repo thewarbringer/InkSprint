@@ -5,9 +5,8 @@ import { Hash, Users } from "lucide-react";
 import AppShell from "../../../components/layout/AppShell.jsx";
 import Button from "../../../components/common/Button.jsx";
 import { PUBLIC_ROOMS } from "../../../constants/appData.js";
+import { getCurrentUser, getUserToken } from "../../../utils/auth.js";
 
-const DIFFICULTIES = ["Easy", "Medium", "Hard"];
-const MODES = ["Classic", "Blitz", "Ranked"];
 const PLAYER_COUNTS = [2, 4, 6, 8];
 
 function Field({ label, children }) {
@@ -46,16 +45,48 @@ export default function RoomSetupPage() {
   const [tab, setTab] = useState(searchParams.get("tab") === "join" ? "join" : "create");
 
   const [roomName, setRoomName] = useState("");
-  const [difficulty, setDifficulty] = useState("Medium");
-  const [mode, setMode] = useState("Classic");
   const [players, setPlayers] = useState(6);
   const [isPrivate, setIsPrivate] = useState(false);
   const [rounds, setRounds] = useState(5);
   const [joinCode, setJoinCode] = useState("");
+  const [submitError, setSubmitError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleCreate(e) {
+  const token = getUserToken();
+  const currentUser = getCurrentUser();
+
+  async function handleCreate(e) {
     e.preventDefault();
-    navigate(`/lobby/${(roomName || "SPRINT").slice(0, 4).toUpperCase()}-${Math.floor(Math.random() * 900 + 100)}`);
+    setSubmitError(null);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/active-game/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          roomName,
+          maxPlayers: players,
+          rounds,
+          privateRoom: isPrivate ? 'yes' : 'no',
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || 'Unable to create the room.');
+      }
+
+      navigate(`/lobby/${result.game.roomId}`);
+    } catch (err) {
+      console.error(err);
+      setSubmitError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   function handleJoin(e) {
@@ -101,14 +132,6 @@ export default function RoomSetupPage() {
             />
           </Field>
 
-          <Field label="Difficulty">
-            <PillGroup options={DIFFICULTIES} value={difficulty} onChange={setDifficulty} />
-          </Field>
-
-          <Field label="Game mode">
-            <PillGroup options={MODES} value={mode} onChange={setMode} />
-          </Field>
-
           <Field label="Max players">
             <PillGroup options={PLAYER_COUNTS} value={players} onChange={setPlayers} />
           </Field>
@@ -146,8 +169,11 @@ export default function RoomSetupPage() {
             </button>
           </div>
 
-          <Button type="submit" variant="primary" className="w-full justify-center">
-            Create room →
+          {submitError && (
+            <p className="mb-4 text-[13.5px] text-danger">{submitError}</p>
+          )}
+          <Button type="submit" variant="primary" className="w-full justify-center" disabled={isSubmitting}>
+            {isSubmitting ? 'Creating room…' : 'Create room →'}
           </Button>
         </motion.form>
       ) : (

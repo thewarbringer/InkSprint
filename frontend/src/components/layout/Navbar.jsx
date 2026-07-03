@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import Button from "../common/Button.jsx";
+import { getCurrentUser, clearUserSession } from "../../utils/auth.js";
 
 const LINKS = [
   { label: "Features", href: "#features" },
@@ -11,7 +13,9 @@ const LINKS = [
 
 export default function Navbar() {
   const [hidden, setHidden] = useState(false);
+  const [user, setUser] = useState(getCurrentUser());
   const lastY = useRef(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     function handleScroll() {
@@ -22,6 +26,18 @@ export default function Navbar() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    const handleStorage = () => setUser(getCurrentUser());
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  const handleLogout = () => {
+    clearUserSession();
+    setUser(null);
+    navigate('/login');
+  };
 
   return (
     <motion.nav
@@ -50,12 +66,25 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button as="a" href="#" variant="ghost">
-            Log in
-          </Button>
-          <Button as="a" href="#" variant="primary">
-            Play free
-          </Button>
+          {user ? (
+            <>
+              <Button as="a" href="/dashboard" variant="ghost">
+                Dashboard
+              </Button>
+              <Button as="button" onClick={handleLogout} variant="primary">
+                Log out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button as="a" href="/login" variant="ghost">
+                Log in
+              </Button>
+              <Button as="a" href="/play" variant="primary">
+                Play free
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </motion.nav>
