@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Palette, Bell, Shield, Volume2, UserCog, LogOut } from "lucide-react";
-import AppShell from "../../components/layout/AppShell.jsx";
-import Button from "../../components/common/Button.jsx";
-import { Toggle } from "../../components/common/UIAtoms.jsx";
-import FormInput from "../../components/common/FormInput.jsx";
+import AppShell from "../../../components/layout/AppShell.jsx";
+import Button from "../../../components/common/Button.jsx";
+import { Toggle } from "../../../components/common/UIAtoms.jsx";
+import FormInput from "../../../components/common/FormInput.jsx";
 
 const TABS = [
   { id: "appearance", label: "Appearance", icon: Palette },

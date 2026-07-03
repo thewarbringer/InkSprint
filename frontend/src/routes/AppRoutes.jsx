@@ -1,15 +1,15 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import LandingPage from "../pages/Landing/LandingPage.jsx";
-import LoginPage from "../pages/Auth/LoginPage.jsx";
-import SignupPage from "../pages/Auth/SignupPage.jsx";
-import DashboardPage from "../pages/Dashboard/DashboardPage.jsx";
-import RoomSetupPage from "../pages/Room/RoomSetupPage.jsx";
-import LobbyPage from "../pages/Lobby/LobbyPage.jsx";
-import GameScreenPage from "../pages/Game/GameScreenPage.jsx";
-import ResultsPage from "../pages/Results/ResultsPage.jsx";
-import ProfilePage from "../pages/Profile/ProfilePage.jsx";
-import LeaderboardPage from "../pages/Leaderboard/LeaderboardPage.jsx";
-import SettingsPage from "../pages/Settings/SettingsPage.jsx";
+import LoginPage from "../pages/Landing/Auth/LoginPage.jsx";
+import SignupPage from "../pages/Landing/Auth/SignupPage.jsx";
+import DashboardPage from "../pages/Landing/Dashboard/DashboardPage.jsx";
+import RoomSetupPage from "../pages/Landing/Room/RoomSetupPage.jsx";
+import LobbyPage from "../pages/Landing/Lobby/LobbyPage.jsx";
+import GameScreenPage from "../pages/Landing/Game/GameScreenPage.jsx";
+import ResultsPage from "../pages/Landing/Results/ResultsPage.jsx";
+import ProfilePage from "../pages/Landing/Profile/ProfilePage.jsx";
+import LeaderboardPage from "../pages/Landing/Leaderboard/LeaderboardPage.jsx";
+import SettingsPage from "../pages/Landing/Settings/SettingsPage.jsx";
 
 export default function AppRoutes() {
   return (
@@ -31,3 +31,4 @@ export default function AppRoutes() {
     </BrowserRouter>
   );
 }
+ 

@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Zap, Users, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
-import AnimatedBackground from "../../components/common/AnimatedBackground.jsx";
+import AnimatedBackground from "../../../components/common/AnimatedBackground.jsx";
 
 const HIGHLIGHTS = [
   { icon: Zap, text: "Recognition running live in your browser" },

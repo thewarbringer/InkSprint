@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Eraser } from "lucide-react";
-import AppShell from "../../components/layout/AppShell.jsx";
-import Button from "../../components/common/Button.jsx";
-import GameCanvas from "../../components/game/GameCanvas.jsx";
-import PredictionPanel from "../../components/game/PredictionPanel.jsx";
-import { Avatar, ProgressBar } from "../../components/common/UIAtoms.jsx";
-import { GAME_OPPONENTS } from "../../constants/appData.js";
+import AppShell from "../../../components/layout/AppShell.jsx";
+import Button from "../../../components/common/Button.jsx";
+import GameCanvas from "../../../components/game/GameCanvas.jsx";
+import PredictionPanel from "../../../components/game/PredictionPanel.jsx";
+import { Avatar, ProgressBar } from "../../../components/common/UIAtoms.jsx";
+import { GAME_OPPONENTS } from "../../../constants/appData.js";
 
 const ROUND_SECONDS = 30;
 const WIN_THRESHOLD = 92;

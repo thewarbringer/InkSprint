@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Hash, Users } from "lucide-react";
-import AppShell from "../../components/layout/AppShell.jsx";
-import Button from "../../components/common/Button.jsx";
-import { PUBLIC_ROOMS } from "../../constants/appData.js";
+import AppShell from "../../../components/layout/AppShell.jsx";
+import Button from "../../../components/common/Button.jsx";
+import { PUBLIC_ROOMS } from "../../../constants/appData.js";
 
 const DIFFICULTIES = ["Easy", "Medium", "Hard"];
 const MODES = ["Classic", "Blitz", "Ranked"];

@@ -1,16 +1,16 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Target, Flame, Clock, Sparkles, Zap, Users2 } from "lucide-react";
-import AppShell from "../../components/layout/AppShell.jsx";
-import { StatCard, ProgressBar, Avatar, Badge } from "../../components/common/UIAtoms.jsx";
-import { staggerContainer, fadeInUp } from "../../animations/variants.js";
+import AppShell from "../../../components/layout/AppShell.jsx";
+import { StatCard, ProgressBar, Avatar, Badge } from "../../../components/common/UIAtoms.jsx";
+import { staggerContainer, fadeInUp } from "../../../animations/variants.js";
 import {
   CURRENT_USER,
   DASHBOARD_STATS,
   RECENT_MATCHES,
   FRIENDS,
   DAILY_CHALLENGE,
-} from "../../constants/appData.js";
+} from "../../../constants/appData.js";
 
 const ICONS = { Target, Flame, Clock, Sparkles };
 

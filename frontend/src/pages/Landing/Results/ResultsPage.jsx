@@ -1,10 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Award, Crown } from "lucide-react";
-import AppShell from "../../components/layout/AppShell.jsx";
-import Button from "../../components/common/Button.jsx";
-import { Avatar } from "../../components/common/UIAtoms.jsx";
-import { RESULTS_DATA } from "../../constants/appData.js";
+import AppShell from "../../../components/layout/AppShell.jsx";
+import Button from "../../../components/common/Button.jsx";
+import { Avatar } from "../../../components/common/UIAtoms.jsx";
+import { RESULTS_DATA } from "../../../constants/appData.js";
 
 export default function ResultsPage() {
   const { roomCode } = useParams();

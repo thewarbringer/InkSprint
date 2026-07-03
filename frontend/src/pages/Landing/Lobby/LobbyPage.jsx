@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Copy, Check, Crown, Send } from "lucide-react";
-import AppShell from "../../components/layout/AppShell.jsx";
-import Button from "../../components/common/Button.jsx";
-import { Avatar, Badge } from "../../components/common/UIAtoms.jsx";
-import { LOBBY_PLAYERS, LOBBY_CHAT } from "../../constants/appData.js";
+import AppShell from "../../../components/layout/AppShell.jsx";
+import Button from "../../../components/common/Button.jsx";
+import { Avatar, Badge } from "../../../components/common/UIAtoms.jsx";
+import { LOBBY_PLAYERS, LOBBY_CHAT } from "../../../constants/appData.js";
 
 export default function LobbyPage() {
   const { roomCode } = useParams();

@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 import { Award } from "lucide-react";
-import AppShell from "../../components/layout/AppShell.jsx";
-import { Avatar, ProgressBar, Badge, StatCard } from "../../components/common/UIAtoms.jsx";
-import { staggerContainer, fadeInUp } from "../../animations/variants.js";
-import { CURRENT_USER, PROFILE_BADGES, PROFILE_HISTORY } from "../../constants/appData.js";
+import AppShell from "../../../components/layout/AppShell.jsx";
+import { Avatar, ProgressBar, Badge, StatCard } from "../../../components/common/UIAtoms.jsx";
+import { staggerContainer, fadeInUp } from "../../../animations/variants.js";
+import { CURRENT_USER, PROFILE_BADGES, PROFILE_HISTORY } from "../../../constants/appData.js";
 import { Target, Flame, Trophy, Heart } from "lucide-react";
 
 export default function ProfilePage() {

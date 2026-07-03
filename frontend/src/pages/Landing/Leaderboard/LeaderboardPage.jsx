@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Search, Crown } from "lucide-react";
-import AppShell from "../../components/layout/AppShell.jsx";
-import { Avatar } from "../../components/common/UIAtoms.jsx";
-import { LEADERBOARD_FULL } from "../../constants/appData.js";
+import AppShell from "../../../components/layout/AppShell.jsx";
+import { Avatar } from "../../../components/common/UIAtoms.jsx";
+import { LEADERBOARD_FULL } from "../../../constants/appData.js";
 
 const FILTERS = ["Season 4", "All-time"];
 

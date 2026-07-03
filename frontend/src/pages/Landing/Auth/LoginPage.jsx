@@ -4,12 +4,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail } from "lucide-react";
 import AuthLayout from "./AuthLayout.jsx";
-import FormInput from "../../components/common/FormInput.jsx";
-import PasswordInput from "../../components/common/PasswordInput.jsx";
-import { Checkbox, SocialButton } from "../../components/common/AuthControls.jsx";
-import OrDivider from "../../components/common/OrDivider.jsx";
-import Button from "../../components/common/Button.jsx";
-import { loginSchema } from "../../utils/validation.js";
+import FormInput from "../../../components/common/FormInput.jsx";
+import PasswordInput from "../../../components/common/PasswordInput.jsx";
+import { Checkbox, SocialButton } from "../../../components/common/AuthControls.jsx";
+import OrDivider from "../../../components/common/OrDivider.jsx";
+import Button from "../../../components/common/Button.jsx";
+import { loginSchema } from "../../../utils/validation.js";
 
 export default function LoginPage() {
   const [submitError, setSubmitError] = useState(null);
