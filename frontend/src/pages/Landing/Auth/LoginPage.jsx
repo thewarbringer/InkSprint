@@ -38,7 +38,7 @@ export default function LoginPage() {
         throw new Error(result.message || 'Invalid email or password.');
       }
 
-      setUserSession({ user: result.user, token: result.token });
+      setUserSession({ user: result.user, token: result.token }, Boolean(data.remember));
       navigate('/dashboard');
     } catch (err) {
       console.error(err);

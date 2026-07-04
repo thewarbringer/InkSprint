@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Hash, Users } from "lucide-react";
@@ -51,9 +51,38 @@ export default function RoomSetupPage() {
   const [joinCode, setJoinCode] = useState("");
   const [submitError, setSubmitError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [availableGames, setAvailableGames] = useState([]);
+  const [isLoadingGames, setIsLoadingGames] = useState(false);
 
   const token = getUserToken();
   const currentUser = getCurrentUser();
+
+  useEffect(() => {
+    if (tab === "join") {
+      fetchAvailableGames();
+    }
+  }, [tab]);
+
+  async function fetchAvailableGames() {
+    setIsLoadingGames(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/active-game/available`
+      );
+      const result = await response.json();
+      if (response.ok) {
+        setAvailableGames(result.games || []);
+      } else {
+        console.error('Failed to fetch available games');
+        setAvailableGames([]);
+      }
+    } catch (err) {
+      console.error('Error fetching available games:', err);
+      setAvailableGames([]);
+    } finally {
+      setIsLoadingGames(false);
+    }
+  }
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -89,9 +118,46 @@ export default function RoomSetupPage() {
     }
   }
 
-  function handleJoin(e) {
+  async function joinRoom(roomId) {
+    if (!token) {
+      setSubmitError('You must be logged in to join a room.');
+      return;
+    }
+
+    setSubmitError(null);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/active-game/join`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ roomId }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || 'Unable to join room.');
+      }
+
+      navigate(`/lobby/${roomId}`);
+    } catch (err) {
+      console.error(err);
+      setSubmitError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleJoin(e) {
     e.preventDefault();
-    navigate(`/lobby/${joinCode || "SPRT-DEMO"}`);
+    if (!joinCode?.trim()) {
+      setSubmitError('Please enter a room code to join.');
+      return;
+    }
+    await joinRoom(joinCode.trim().toUpperCase());
   }
 
   return (
@@ -201,29 +267,34 @@ export default function RoomSetupPage() {
             <Button type="submit" variant="primary">Join →</Button>
           </form>
 
-          <h3 className="mb-4 text-[15px] font-semibold">Public rooms</h3>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {PUBLIC_ROOMS.map((room) => (
-              <div
-                key={room.code}
-                className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.05] p-5"
-              >
-                <div>
-                  <div className="text-[14.5px] font-semibold">{room.name}</div>
-                  <div className="mt-1 flex items-center gap-3 text-[12px] text-muted">
-                    <span className="flex items-center gap-1">
-                      <Users size={12} /> {room.players}
-                    </span>
-                    <span>{room.difficulty}</span>
-                    <span>{room.mode}</span>
+          <h3 className="mb-4 text-[15px] font-semibold">Available Games</h3>
+          {isLoadingGames ? (
+            <div className="text-[14px] text-muted">Loading available games...</div>
+          ) : availableGames.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {availableGames.map((game) => (
+                <div
+                  key={game.roomId}
+                  className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.05] p-5"
+                >
+                  <div>
+                    <div className="text-[14.5px] font-semibold">{game.roomName}</div>
+                    <div className="mt-1 flex items-center gap-3 text-[12px] text-muted">
+                      <span className="flex items-center gap-1">
+                        <Users size={12} /> {game.players?.length || 0}/{game.maxPlayers}
+                      </span>
+                      <span>{game.rounds} rounds</span>
+                    </div>
                   </div>
+                  <Button variant="ghost" onClick={() => joinRoom(game.roomId)}>
+                    Join
+                  </Button>
                 </div>
-                <Button variant="ghost" onClick={() => navigate(`/lobby/${room.code}`)}>
-                  Join
-                </Button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-[14px] text-muted">No games available at the moment. Create one or try again later.</div>
+          )}
         </motion.div>
       )}
     </AppShell>

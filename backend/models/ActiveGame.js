@@ -51,6 +51,12 @@ const activeGameSchema = new mongoose.Schema({
           type: Boolean,
           default: false,
         },
+        ready: {
+          type: String,
+          enum: ['yes', 'no'],
+          required: true,
+          default: 'no',
+        },
       },
     ],
     default: [],

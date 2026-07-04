@@ -1,17 +1,11 @@
 const AUTH_STORAGE_KEY = 'InkSprintUser';
 
-export function setUserSession(data) {
-  if (!data) return;
-  const payload = data.token ? data : { user: data, token: null };
-  sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(payload));
-}
-
-export function getUserSession() {
+function readStoredSession() {
   if (typeof window === 'undefined') {
     return null;
   }
 
-  const raw = sessionStorage.getItem(AUTH_STORAGE_KEY);
+  const raw = window.localStorage.getItem(AUTH_STORAGE_KEY) || window.sessionStorage.getItem(AUTH_STORAGE_KEY);
   if (!raw) {
     return null;
   }
@@ -20,9 +14,27 @@ export function getUserSession() {
     return JSON.parse(raw);
   } catch (error) {
     console.error('Failed to parse user session:', error);
-    sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
     return null;
   }
+}
+
+export function setUserSession(data, remember = true) {
+  if (!data || typeof window === 'undefined') return;
+  const payload = data.token ? data : { user: data, token: null };
+
+  if (remember) {
+    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(payload));
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+  } else {
+    window.sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(payload));
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+  }
+}
+
+export function getUserSession() {
+  return readStoredSession();
 }
 
 export function getCurrentUser() {
@@ -54,7 +66,9 @@ export async function fetchCurrentUser() {
 }
 
 export function clearUserSession() {
-  sessionStorage.removeItem(AUTH_STORAGE_KEY);
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(AUTH_STORAGE_KEY);
+  window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
 }
 
 export function getApiBaseUrl() {
