@@ -22,6 +22,16 @@ const activeGameSchema = new mongoose.Schema({
     required: true,
     min: 1,
   },
+  roundsDone: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  timerSeconds: {
+    type: Number,
+    default: 45,
+    min: 0,
+  },
   privateRoom: {
     type: String,
     enum: ['yes', 'no'],
@@ -30,7 +40,7 @@ const activeGameSchema = new mongoose.Schema({
   },
   state: {
     type: String,
-    enum: ['started', 'waiting', 'ended'],
+    enum: ['started', 'waiting', 'over'],
     required: true,
     default: 'waiting',
   },

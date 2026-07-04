@@ -1,4 +1,5 @@
 const ActiveGame = require('../models/ActiveGame');
+const EndedGame = require('../models/EndedGame');
 const { broadcastToRoom } = require('../wsServer');
 
 const ALPHANUMERIC_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -122,12 +123,17 @@ exports.getGameByRoomId = async (req, res) => {
   const { roomId } = req.params;
 
   try {
-    const game = await ActiveGame.findOne({ roomId }).lean();
-    if (!game) {
+    const activeGame = await ActiveGame.findOne({ roomId }).lean();
+    if (activeGame) {
+      return res.status(200).json({ game: activeGame });
+    }
+
+    const endedGame = await EndedGame.findOne({ roomId }).lean();
+    if (!endedGame) {
       return res.status(404).json({ message: 'Room not found.' });
     }
 
-    return res.status(200).json({ game });
+    return res.status(200).json({ game: endedGame });
   } catch (error) {
     console.error('Get game by room error:', error);
     return res.status(500).json({ message: error.message || 'Unable to fetch room details.' });

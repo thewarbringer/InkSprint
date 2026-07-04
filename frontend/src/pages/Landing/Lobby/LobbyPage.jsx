@@ -19,6 +19,7 @@ export default function LobbyPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [wsConnected, setWsConnected] = useState(false);
+  const [gameState, setGameState] = useState('waiting');
 
   const currentUser = getCurrentUser();
   const token = getUserToken();
@@ -94,6 +95,19 @@ export default function LobbyPage() {
         throw new Error(result.message || 'Unable to load room details.');
       }
 
+      const nextState = result.game?.state || 'waiting';
+      setGameState(nextState);
+
+      if (nextState === 'started') {
+        navigate(`/game/${roomCode}`);
+        return;
+      }
+
+      if (nextState === 'over') {
+        navigate(`/results/${roomCode}`);
+        return;
+      }
+
       const lobbyPlayers = (result.game.players || []).map((player, index) => ({
         name: player.username,
         ready: player.ready === 'yes',
@@ -114,7 +128,9 @@ export default function LobbyPage() {
     setIsLoading(true);
     fetchLobbyPlayers().finally(() => setIsLoading(false));
 
-    pollRef.current = setInterval(fetchLobbyPlayers, 500);
+    pollRef.current = setInterval(() => {
+      fetchLobbyPlayers();
+    }, 500);
 
     return () => {
       clearInterval(pollRef.current);
@@ -137,6 +153,11 @@ export default function LobbyPage() {
       try {
         data = JSON.parse(event.data);
       } catch (error) {
+        return;
+      }
+
+      if (data.type === 'start') {
+        navigate(`/game/${roomCode}`);
         return;
       }
 
@@ -263,12 +284,14 @@ export default function LobbyPage() {
             <div className="text-[12px] text-muted">{wsConnected ? 'Live' : 'Offline'}</div>
           </div>
           <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-            {messages.map((m, i) => (
-              <div key={i} className="text-[13.5px]">
-                <span className="font-semibold text-secondary">{m.name}: </span>
-                <span className="text-white/[0.85]">{m.text}</span>
-              </div>
-            ))}
+            {messages.length > 0 ? (
+              messages.map((m, i) => (
+                <div key={i} className="text-[13.5px]">
+                  <span className="font-semibold text-secondary">{m.name}: </span>
+                  <span className="text-white/[0.85]">{m.text}</span>
+                </div>
+              ))
+            ) : null}
           </div>
           <form onSubmit={sendMessage} className="mt-3 flex gap-2">
             <input

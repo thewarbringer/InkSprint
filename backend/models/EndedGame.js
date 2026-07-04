@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
 const endedGameSchema = new mongoose.Schema({
+  roomId: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+  },
   roomName: {
     type: String,
     required: true,
@@ -27,6 +33,11 @@ const endedGameSchema = new mongoose.Schema({
     enum: ['started', 'waiting', 'ended'],
     required: true,
     default: 'ended',
+  },
+  winner: {
+    type: String,
+    trim: true,
+    default: null,
   },
   players: {
     type: [

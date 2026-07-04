@@ -1,15 +1,95 @@
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Award, Crown } from "lucide-react";
 import AppShell from "../../../components/layout/AppShell.jsx";
 import Button from "../../../components/common/Button.jsx";
 import { Avatar } from "../../../components/common/UIAtoms.jsx";
-import { RESULTS_DATA } from "../../../constants/appData.js";
+import { getUserToken } from "../../../utils/auth.js";
 
 export default function ResultsPage() {
   const { roomCode } = useParams();
   const navigate = useNavigate();
-  const r = RESULTS_DATA;
+  const [resultData, setResultData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const loadResult = async () => {
+      try {
+        const token = getUserToken();
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/active-game/${roomCode}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          const result = await response.json().catch(() => ({}));
+          throw new Error(result.message || 'Unable to load results.');
+        }
+
+        const result = await response.json();
+        const game = result.game;
+
+        if (!game) {
+          throw new Error('No game data found.');
+        }
+
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const currentUsername = currentUser?.username;
+        const winner = (game.players || []).reduce((leader, player) => {
+          if (!leader) return player;
+          return (player.scores || 0) > (leader.scores || 0) ? player : leader;
+        }, null)?.username || null;
+
+        setResultData({
+          winner,
+          isYou: winner === currentUsername,
+          word: 'ROCKET',
+          recognitionTime: '0.8s',
+          xpGained: 140,
+          newXpTotal: 27120,
+          achievementsUnlocked: [],
+          standings: (game.players || []).map((player, index) => ({
+            rank: index + 1,
+            name: player.username,
+            score: player.scores || 0,
+            isYou: player.username === currentUsername,
+          })),
+        });
+      } catch (err) {
+        console.error(err);
+        setError(err.message || 'Unable to load game results.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadResult();
+  }, [roomCode]);
+
+  if (isLoading) {
+    return (
+      <AppShell title="Round results" subtitle={`Room ${roomCode}`}>
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.05] p-6 text-[14px] text-muted">
+          Loading results…
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (error || !resultData) {
+    return (
+      <AppShell title="Round results" subtitle={`Room ${roomCode}`}>
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.05] p-6 text-[14px] text-danger">
+          {error || 'Unable to load results.'}
+        </div>
+      </AppShell>
+    );
+  }
+
+  const r = resultData;
 
   return (
     <AppShell title="Round results" subtitle={`Room ${roomCode}`}>
@@ -23,7 +103,7 @@ export default function ResultsPage() {
           >
             <Crown className="mx-auto mb-3 text-warning" size={28} />
             <div className="mb-1 text-[13px] uppercase tracking-[0.06em] text-muted">
-              {r.isYou ? "You won the round" : `${r.winner} won the round`}
+              {r.isYou ? "You won the round" : `${r.winner || 'No winner'} won the round`}
             </div>
             <div className="mb-4 font-mono text-[32px] font-bold">{r.word}</div>
             <div className="flex justify-center gap-8 text-[13.5px] text-muted">
@@ -56,9 +136,6 @@ export default function ResultsPage() {
           )}
 
           <div className="flex gap-3">
-            <Button variant="primary" className="flex-1 justify-center" onClick={() => navigate(`/lobby/${roomCode}`)}>
-              Play again
-            </Button>
             <Button variant="ghost" className="flex-1 justify-center" onClick={() => navigate("/dashboard")}>
               Back to dashboard
             </Button>

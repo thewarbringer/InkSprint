@@ -44,6 +44,14 @@ function initWebsocket(server) {
 
           broadcastToRoom(roomId, payload);
         }
+
+        if (data.type === 'drawStroke' && data.stroke) {
+          broadcastToRoom(roomId, JSON.stringify({
+            type: 'drawStroke',
+            stroke: data.stroke,
+            username,
+          }));
+        }
       });
 
       socket.on('close', () => {
