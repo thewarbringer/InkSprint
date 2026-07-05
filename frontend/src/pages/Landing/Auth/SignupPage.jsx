@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail, User } from "lucide-react";
@@ -9,9 +9,11 @@ import PasswordInput from "../../../components/common/PasswordInput.jsx";
 import { Checkbox } from "../../../components/common/AuthControls.jsx";
 import Button from "../../../components/common/Button.jsx";
 import { signupSchema } from "../../../utils/validation.js";
+import { setUserSession } from "../../../utils/auth.js";
 
 export default function SignupPage() {
   const [submitError, setSubmitError] = useState(null);
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
@@ -21,11 +23,26 @@ export default function SignupPage() {
   async function onSubmit(data) {
     setSubmitError(null);
     try {
-      // Wire this up to your real auth endpoint when the backend is ready.
-      await new Promise((resolve) => setTimeout(resolve, 700));
-      console.log("Signup submitted:", data);
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: data.username,
+          email: data.email,
+          password: data.password,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || 'Unable to create account.');
+      }
+
+      setUserSession({ user: result.user, token: result.token });
+      navigate('/dashboard');
     } catch (err) {
-      setSubmitError("Something went wrong. Please try again.");
+      console.error(err);
+      setSubmitError(err.message || 'Something went wrong. Please try again.');
     }
   }
 

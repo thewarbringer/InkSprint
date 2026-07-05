@@ -17,10 +17,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  country: {
-    type: String,
-    trim: true,
-  },
   totalGames: {
     type: Number,
     default: 0,

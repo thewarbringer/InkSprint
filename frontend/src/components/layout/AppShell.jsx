@@ -2,9 +2,12 @@ import { Bell } from "lucide-react";
 import Sidebar from "./Sidebar.jsx";
 import { Avatar } from "../common/UIAtoms.jsx";
 import { CURRENT_USER } from "../../constants/appData.js";
+import { getUserSession } from "../../utils/auth.js";
 import AnimatedBackground from "../common/AnimatedBackground.jsx";
 
 export default function AppShell({ title, subtitle, children }) {
+  const user = getUserSession() || CURRENT_USER;
+
   return (
     <div className="relative min-h-screen overflow-x-clip">
       <AnimatedBackground />
@@ -23,10 +26,10 @@ export default function AppShell({ title, subtitle, children }) {
                 <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-danger" />
               </button>
               <div className="flex items-center gap-2.5">
-                <Avatar name={CURRENT_USER.username} gradient={CURRENT_USER.avatarGrad} size={34} />
+                <Avatar name={user.username} gradient={user.avatarGrad || 'from-secondary to-primary'} size={34} />
                 <div className="hidden sm:block">
-                  <div className="text-[13.5px] font-semibold leading-tight">{CURRENT_USER.username}</div>
-                  <div className="text-[11.5px] leading-tight text-muted">{CURRENT_USER.tag}</div>
+                  <div className="text-[13.5px] font-semibold leading-tight">{user.username}</div>
+                  <div className="text-[11.5px] leading-tight text-muted">{user.tag || 'New member'}</div>
                 </div>
               </div>
             </div>
