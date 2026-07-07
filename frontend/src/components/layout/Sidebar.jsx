@@ -1,5 +1,6 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Swords, Trophy, User, Settings, LogOut } from "lucide-react";
+import { clearUserSession } from "../../utils/auth.js";
 
 const ICONS = { LayoutDashboard, Swords, Trophy, User, Settings };
 
@@ -12,6 +13,13 @@ const LINKS = [
 ];
 
 export default function Sidebar() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    clearUserSession();
+    navigate("/");
+    window.location.reload();
+  };
   return (
     <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[240px] flex-col border-r border-white/[0.08] bg-bg/70 backdrop-blur-xl md:flex">
       <div className="flex items-center gap-2.5 px-6 py-6 text-[18px] font-bold tracking-[-0.01em]">
@@ -44,7 +52,10 @@ export default function Sidebar() {
       </nav>
 
       <div className="px-3 pb-6">
-        <button className="flex w-full items-center gap-3 rounded-[10px] px-3.5 py-2.5 text-[14px] font-medium text-muted transition-colors hover:bg-white/[0.04] hover:text-danger">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-[10px] px-3.5 py-2.5 text-[14px] font-medium text-muted transition-colors hover:bg-white/[0.04] hover:text-danger"
+        >
           <LogOut size={17} />
           Log out
         </button>

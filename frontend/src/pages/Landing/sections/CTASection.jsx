@@ -18,8 +18,8 @@ export default function CTASection() {
         <p className="mb-8 text-muted">
           No install, no download — the model loads in your browser in seconds.
         </p>
-        <Button as="a" href="#" variant="primary">
-          Start a sprint →
+        <Button as="a" href="/signup" variant="primary">
+          Sign up →
         </Button>
       </motion.div>
     </section>

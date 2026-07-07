@@ -1,12 +1,19 @@
 import { Bell } from "lucide-react";
+import { useState } from "react";
 import Sidebar from "./Sidebar.jsx";
+import NotificationPanel from "./NotificationPanel.jsx";
 import { Avatar } from "../common/UIAtoms.jsx";
 import { CURRENT_USER } from "../../constants/appData.js";
 import { getUserSession } from "../../utils/auth.js";
 import AnimatedBackground from "../common/AnimatedBackground.jsx";
 
 export default function AppShell({ title, subtitle, children }) {
-  const user = getUserSession() || CURRENT_USER;
+  const user = getUserSession()?.user || CURRENT_USER;
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+
+  // Generate a tag based on totalGames or rating
+  const userTag = user.tag || (user.totalGames === undefined ? "New member" : `${user.totalGames} games`);
 
   return (
     <div className="relative min-h-screen overflow-x-clip">
@@ -20,16 +27,26 @@ export default function AppShell({ title, subtitle, children }) {
               <h1 className="text-[20px] font-bold tracking-[-0.01em]">{title}</h1>
               {subtitle && <p className="text-[13px] text-muted">{subtitle}</p>}
             </div>
-            <div className="flex items-center gap-4">
-              <button className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.05] text-muted transition-colors hover:text-white">
+            <div className="flex items-center gap-4 relative">
+              <button
+                onClick={() => setNotificationOpen(!notificationOpen)}
+                className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.05] text-muted transition-colors hover:text-white hover:bg-white/[0.1]"
+              >
                 <Bell size={16} />
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-danger" />
+                {notifications.length > 0 && (
+                  <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-danger" />
+                )}
               </button>
+              <NotificationPanel
+                isOpen={notificationOpen}
+                onClose={() => setNotificationOpen(false)}
+                notifications={notifications}
+              />
               <div className="flex items-center gap-2.5">
                 <Avatar name={user.username} gradient={user.avatarGrad || 'from-secondary to-primary'} size={34} />
                 <div className="hidden sm:block">
                   <div className="text-[13.5px] font-semibold leading-tight">{user.username}</div>
-                  <div className="text-[11.5px] leading-tight text-muted">{user.tag || 'New member'}</div>
+                  <div className="text-[11.5px] leading-tight text-muted">{userTag}</div>
                 </div>
               </div>
             </div>

@@ -1,8 +1,7 @@
 /**
- * Uncontrolled input driven by react-hook-form. Pass `icon` as a lucide-react
- * component, and spread {...register("fieldName")} into `registerProps` —
- * react-hook-form's own ref travels in there, so this component doesn't
- * need to forward a ref itself.
+ * Supports both controlled and uncontrolled inputs.
+ * For react-hook-form: spread {...register("fieldName")} into `registerProps`
+ * For controlled inputs: pass `value` and `onChange` props directly
  */
 export default function FormInput({
   label,
@@ -12,6 +11,8 @@ export default function FormInput({
   registerProps,
   placeholder,
   rightElement,
+  value,
+  onChange,
 }) {
   return (
     <div className="mb-5">
@@ -28,6 +29,8 @@ export default function FormInput({
         <input
           type={type}
           placeholder={placeholder}
+          value={value}
+          onChange={onChange}
           {...registerProps}
           className={`w-full rounded-[10px] border bg-white/[0.04] py-3 text-[14.5px] text-white placeholder:text-white/[0.25] transition-colors focus:outline-none focus:ring-1 ${
             Icon ? "pl-10" : "pl-3.5"

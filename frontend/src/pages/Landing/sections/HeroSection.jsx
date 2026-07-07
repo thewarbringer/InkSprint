@@ -38,8 +38,8 @@ export default function HeroSection() {
           </p>
 
           <div className="mb-12 flex flex-wrap gap-3.5">
-            <Button as="a" href="#" variant="primary">
-              Start a sprint →
+            <Button as="a" href="/signup" variant="primary">
+              Sign up →
             </Button>
             <Button as="a" href="#how" variant="ghost">
               See how it works

@@ -36,7 +36,7 @@ export default function Navbar() {
   const handleLogout = () => {
     clearUserSession();
     setUser(null);
-    navigate('/login');
+    navigate('/');
   };
 
   return (
