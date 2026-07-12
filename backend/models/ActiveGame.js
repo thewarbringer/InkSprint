@@ -32,6 +32,11 @@ const activeGameSchema = new mongoose.Schema({
     default: 45,
     min: 0,
   },
+  currentWord: {
+    type: String,
+    trim: true,
+    default: '',
+  },
   privateRoom: {
     type: String,
     enum: ['yes', 'no'],

@@ -5,7 +5,10 @@ const http = require('http')
 const connectDB = require('./db.js')
 const ActiveGame = require('./models/ActiveGame')
 const EndedGame = require('./models/EndedGame')
+const categories = require('./categories.json')
+const User = require('./models/User')
 const { initWebsocket, broadcastToRoom } = require('./wsServer.js')
+const { updateUserGameHistory } = require('./utils/gameHistory')
 
 const app = express()
 
@@ -36,7 +39,13 @@ const getWinner = (players = []) => {
     }, null)?.username || null;
 };
 
+const getRandomWord = () => {
+    const index = Math.floor(Math.random() * categories.length);
+    return categories[index] || '';
+};
+
 const archiveGameAsEnded = async (game) => {
+    const winnerUsername = getWinner(game.players || []);
     const endedGame = new EndedGame({
         roomId: game.roomId,
         roomName: game.roomName,
@@ -44,7 +53,7 @@ const archiveGameAsEnded = async (game) => {
         rounds: game.rounds,
         privateRoom: game.privateRoom,
         state: 'ended',
-        winner: getWinner(game.players || []),
+        winner: winnerUsername,
         players: (game.players || []).map((player) => ({
             username: player.username,
             scores: player.scores || 0,
@@ -53,8 +62,15 @@ const archiveGameAsEnded = async (game) => {
     });
 
     await endedGame.save();
+    await updateUserGameHistory(User, game, winnerUsername);
     await ActiveGame.deleteOne({ _id: game._id });
 };
+
+const getBroadcastPlayers = (game) => (game.players || []).map((player) => ({
+    username: player.username,
+    scores: player.scores || 0,
+    hold: Boolean(player.hold),
+}));
 
 const startRoundTimer = () => {
     setInterval(async () => {
@@ -76,6 +92,10 @@ const startRoundTimer = () => {
                 const nextRoundsDone = (game.roundsDone || 0) + 1
                 game.roundsDone = nextRoundsDone
                 game.timerSeconds = 45
+                game.players.forEach((player) => {
+                    player.hold = false
+                })
+                game.currentWord = getRandomWord()
 
                 if (nextRoundsDone >= game.rounds) {
                     await archiveGameAsEnded(game)
@@ -91,9 +111,11 @@ const startRoundTimer = () => {
                 broadcastToRoom(game.roomId, {
                     type: 'roundAdvance',
                     roomId: game.roomId,
+                    word: game.currentWord,
                     roundsDone: game.roundsDone,
                     rounds: game.rounds,
                     timerSeconds: game.timerSeconds,
+                    players: getBroadcastPlayers(game),
                 })
             }
         } catch (error) {

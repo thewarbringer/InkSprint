@@ -1,12 +1,49 @@
 import { motion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Award } from "lucide-react";
 import AppShell from "../../../components/layout/AppShell.jsx";
 import { Avatar, ProgressBar, Badge, StatCard } from "../../../components/common/UIAtoms.jsx";
 import { staggerContainer, fadeInUp } from "../../../animations/variants.js";
-import { CURRENT_USER, PROFILE_BADGES, PROFILE_HISTORY } from "../../../constants/appData.js";
+import { CURRENT_USER, PROFILE_BADGES } from "../../../constants/appData.js";
+import { fetchCurrentUser, getCurrentUser, setUserSession } from "../../../utils/auth.js";
 import { Target, Flame, Trophy, Heart } from "lucide-react";
 
 export default function ProfilePage() {
+  const [currentUser, setCurrentUser] = useState(() => getCurrentUser() || CURRENT_USER);
+  const matchHistory = useMemo(() => {
+    const games = Array.isArray(currentUser.gamesHistory) ? currentUser.gamesHistory : [];
+    return games
+      .slice()
+      .sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt))
+      .slice(0, 10)
+      .map((game) => ({
+        roomName: game.roomName || game.roomId || "Private room",
+        roomId: game.roomId || "",
+        result: game.result === "win" ? "win" : "loss",
+        playedAt: game.playedAt,
+      }));
+  }, [currentUser.gamesHistory]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadUser = async () => {
+      const freshUser = await fetchCurrentUser();
+      if (!isMounted) return;
+
+      if (freshUser) {
+        setCurrentUser(freshUser);
+        setUserSession({ user: freshUser });
+      }
+    };
+
+    loadUser();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <AppShell title="Profile" subtitle="Your stats, badges, and match history.">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -67,17 +104,27 @@ export default function ProfilePage() {
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.05] p-6">
             <h3 className="mb-4 text-[15px] font-semibold">Match history</h3>
             <div className="flex flex-col divide-y divide-white/[0.06]">
-              {PROFILE_HISTORY.map((m, i) => (
-                <div key={i} className="flex items-center justify-between py-3">
+              {matchHistory.length > 0 ? matchHistory.map((m, i) => (
+                <div key={`${m.roomName}-${i}`} className="flex items-center justify-between py-3">
                   <div className="flex items-center gap-3">
                     <Badge tone={m.result === "win" ? "success" : "danger"}>
                       {m.result === "win" ? "WIN" : "LOSS"}
                     </Badge>
-                    <span className="font-mono text-[13.5px]">{m.word}</span>
+                    <div className="flex flex-col">
+                      <span className="font-mono text-[13.5px]">{m.roomName}</span>
+                      {m.roomId ? <span className="text-[11px] text-muted">Room {m.roomId}</span> : null}
+                    </div>
                   </div>
-                  <span className="text-[12.5px] text-muted">{m.ago}</span>
+                  <div className="flex items-center gap-3">
+                    <Link to={`/results/${encodeURIComponent(m.roomId)}`} className="text-[12px] text-secondary hover:text-secondary/80">
+                      View results
+                    </Link>
+                    <span className="text-[12.5px] text-muted">{new Date(m.playedAt).toLocaleDateString()}</span>
+                  </div>
                 </div>
-              ))}
+              )) : (
+                <div className="py-3 text-[13px] text-muted">No match history yet.</div>
+              )}
             </div>
           </div>
         </div>

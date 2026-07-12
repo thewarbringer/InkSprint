@@ -7,9 +7,10 @@ import GameCanvas from "../../../components/game/GameCanvas.jsx";
 import PredictionPanel from "../../../components/game/PredictionPanel.jsx";
 import { Avatar } from "../../../components/common/UIAtoms.jsx";
 import { getCurrentUser, getUserToken } from "../../../utils/auth.js";
+import useQuickDrawPrediction from "../../../hooks/useQuickDrawPrediction.js";
+import { isPredictionMatch } from "../../../utils/predictions.js";
 
 const ROUND_SECONDS = 45;
-const WIN_THRESHOLD = 92;
 const WORD = "ROCKET";
 
 function RemotePreviewCanvas({ strokes }) {
@@ -52,19 +53,33 @@ export default function GameScreenPage() {
   const navigate = useNavigate();
   const canvasRef = useRef(null);
 
-  const [confidence, setConfidence] = useState(0);
+  const [inkConfidence, setInkConfidence] = useState(0);
+  const [currentWord, setCurrentWord] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(ROUND_SECONDS);
   const [currentRound, setCurrentRound] = useState(1);
   const [totalRounds, setTotalRounds] = useState(1);
   const [remoteCanvases, setRemoteCanvases] = useState([]);
+  const [players, setPlayers] = useState([]);
+  const [notification, setNotification] = useState('');
+  const [roundStartedAt, setRoundStartedAt] = useState(Date.now());
   const roundEnded = useRef(false);
   const wsRef = useRef(null);
+  const solvedForRoundRef = useRef(false);
+  const currentUser = getCurrentUser();
+  const username = currentUser?.username;
+
+  const { confidence: modelConfidence, predictedWord, topPredictions, modelReady } = useQuickDrawPrediction({
+    canvasRef,
+    targetWord: currentWord || WORD,
+    active: !roundEnded.current,
+    roundStartedAt,
+  });
+  const confidence = modelReady ? modelConfidence : inkConfidence;
+  const isHeld = players.some((playerEntry) => playerEntry.username === username && playerEntry.hold);
 
   useEffect(() => {
     if (!roomCode) return;
 
-    const currentUser = getCurrentUser();
-    const username = currentUser?.username;
     if (!username) return;
 
     const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -83,6 +98,38 @@ export default function GameScreenPage() {
             }
             return [...prev, { username: data.username, strokes: [data.stroke] }];
           });
+        }
+
+        if (Array.isArray(data.players)) {
+          setPlayers(data.players);
+        }
+
+        if (data.type === 'roundSolved' && data.player) {
+          if (data.message) {
+            setNotification(data.message);
+            window.setTimeout(() => setNotification(''), 2500);
+          }
+
+          if (Array.isArray(data.strokes) && data.player?.username) {
+            setRemoteCanvases((prev) => {
+              const existing = prev.find((item) => item.username === data.player.username);
+              if (existing) {
+                return prev.map((item) => item.username === data.player.username ? { ...item, strokes: data.strokes } : item);
+              }
+              return [...prev, { username: data.player.username, strokes: data.strokes }];
+            });
+          }
+
+          setPlayers((prev) => prev.map((playerEntry) => playerEntry.username === data.player.username ? {
+            ...playerEntry,
+            scores: data.player.scores,
+          } : playerEntry));
+        }
+
+        if ((data.type === 'start' || data.type === 'roundAdvance' || data.type === 'roundWord') && data.word) {
+          setCurrentWord(data.word);
+          setRoundStartedAt(Date.now());
+          solvedForRoundRef.current = false;
         }
       } catch (error) {
         console.error(error);
@@ -122,9 +169,18 @@ export default function GameScreenPage() {
           const nextRoundsDone = result.game.roundsDone || 0;
           const nextTotalRounds = result.game.rounds || 1;
           const nextTimerSeconds = result.game.timerSeconds ?? ROUND_SECONDS;
+          const nextWord = result.game.currentWord || result.game.word || '';
           setCurrentRound(Math.min(nextRoundsDone + 1, nextTotalRounds));
           setTotalRounds(nextTotalRounds);
           setSecondsLeft(nextTimerSeconds);
+          if (Array.isArray(result.game.players)) {
+            setPlayers(result.game.players);
+          }
+          if (nextWord) {
+            setCurrentWord(nextWord);
+          }
+          setRoundStartedAt(Date.now());
+          solvedForRoundRef.current = false;
           return;
         }
 
@@ -140,28 +196,41 @@ export default function GameScreenPage() {
     return () => clearInterval(interval);
   }, [navigate, roomCode]);
 
-  // Win check
-  useEffect(() => {
-    if (confidence >= WIN_THRESHOLD && !roundEnded.current) {
-      roundEnded.current = true;
-      const t = setTimeout(() => navigate(`/results/${roomCode}`), 1200);
-      return () => clearTimeout(t);
-    }
-  }, [confidence, navigate, roomCode]);
-
   useEffect(() => {
     roundEnded.current = false;
-    setConfidence(0);
+    setInkConfidence(0);
     setRemoteCanvases([]);
+    solvedForRoundRef.current = false;
   }, [currentRound]);
+
+  useEffect(() => {
+    if (!modelReady || !roomCode || !currentWord || !username || solvedForRoundRef.current) return;
+
+    const normalizedTargetWord = currentWord || WORD;
+    const topFiveIncludesTarget = (topPredictions || []).slice(0, 5).some((prediction) =>
+      isPredictionMatch(prediction?.label, normalizedTargetWord)
+    );
+
+    if (topFiveIncludesTarget) {
+      solvedForRoundRef.current = true;
+      const strokes = canvasRef.current?.getStrokes?.() || [];
+      wsRef.current?.send(JSON.stringify({ type: 'solveRound', strokes }));
+    }
+  }, [currentWord, modelReady, roomCode, topPredictions, username]);
 
   return (
     <AppShell title="Sprint in progress" subtitle={`Room ${roomCode}`}>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-4 lg:sticky lg:top-4 lg:self-start">
           <div className="flex items-center justify-between">
-            <PredictionPanel word={WORD} confidence={confidence} />
+            <PredictionPanel word={currentWord || WORD} confidence={confidence} predictedWord={predictedWord} topPredictions={topPredictions} />
           </div>
+
+          {notification ? (
+            <div className="rounded-2xl border border-success/30 bg-success/10 px-4 py-3 text-[13px] text-success">
+              {notification}
+            </div>
+          ) : null}
 
           <div className="flex h-[320px] flex-col gap-3 sm:h-[420px] lg:h-[520px]">
             <div className="flex items-center justify-between">
@@ -183,8 +252,8 @@ export default function GameScreenPage() {
             <div className="mx-auto flex h-[320px] w-[320px] max-w-full items-center justify-center sm:h-[480px] sm:w-[720px]">
               <GameCanvas
                 ref={canvasRef}
-                onConfidenceChange={setConfidence}
-                locked={roundEnded.current}
+                onConfidenceChange={setInkConfidence}
+                locked={roundEnded.current || isHeld}
                 socketRef={wsRef}
                 roomId={roomCode}
                 clearSignal={currentRound}
@@ -197,15 +266,20 @@ export default function GameScreenPage() {
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.05] p-5">
             <h3 className="mb-3 text-[14px] font-semibold">Live sketches</h3>
             <div className="flex flex-col gap-3">
-              {remoteCanvases.length === 0 ? (
-                <div className="text-[12.5px] text-muted">No other players are drawing yet.</div>
+              {players.length === 0 ? (
+                <div className="text-[12.5px] text-muted">No players are in the room yet.</div>
               ) : (
-                remoteCanvases.map((item) => (
-                  <div key={item.username} className="rounded-[12px] border border-white/[0.08] bg-[#0a0e24] p-2">
-                    <div className="mb-1 text-[12px] font-medium text-white/80">{item.username}</div>
-                    <div className="mx-auto h-24 w-full max-w-[180px] rounded-[10px] border border-white/[0.06] bg-[#0a0e24]">
-                      <RemotePreviewCanvas strokes={item.strokes} />
+                players.map((playerEntry) => (
+                  <div key={playerEntry.username} className="rounded-[12px] border border-white/[0.08] bg-[#0a0e24] p-2">
+                    <div className="mb-1 flex items-center justify-between text-[12px] font-medium text-white/80">
+                      <span>{playerEntry.username}</span>
                     </div>
+                    <div className="mb-2 text-[13px] font-mono text-white">{playerEntry.scores || 0}</div>
+                    {remoteCanvases.find((item) => item.username === playerEntry.username) ? (
+                      <div className="h-24 w-full rounded-[10px] border border-white/[0.06] bg-[#0a0e24]">
+                        <RemotePreviewCanvas strokes={remoteCanvases.find((item) => item.username === playerEntry.username)?.strokes || []} />
+                      </div>
+                    ) : null}
                   </div>
                 ))
               )}

@@ -22,7 +22,16 @@ function readStoredSession() {
 
 export function setUserSession(data, remember = true) {
   if (!data || typeof window === 'undefined') return;
-  const payload = data.token ? data : { user: data, token: null };
+
+  const existingSession = readStoredSession();
+  const existingToken = existingSession?.token || null;
+  const payload = data && Object.prototype.hasOwnProperty.call(data, 'token')
+    ? { ...data, token: data.token || existingToken }
+    : { user: data, token: existingToken };
+
+  if (payload.user && Array.isArray(payload.user.gamesHistory)) {
+    payload.user.gamesHistory = payload.user.gamesHistory.slice().sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt));
+  }
 
   if (remember) {
     window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(payload));

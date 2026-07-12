@@ -8,6 +8,7 @@ const buildUserResponse = (user) => ({
   email: user.gmail,
   totalGames: user.totalGames,
   rating: user.rating,
+  gamesHistory: user.gamesHistory || [],
   createdAt: user.createdAt,
 });
 

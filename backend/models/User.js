@@ -1,5 +1,38 @@
 const mongoose = require('mongoose');
 
+const gameHistoryEntrySchema = new mongoose.Schema({
+  roomId: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  roomName: {
+    type: String,
+    trim: true,
+    default: '',
+  },
+  winner: {
+    type: String,
+    trim: true,
+    default: null,
+  },
+  result: {
+    type: String,
+    enum: ['win', 'loss'],
+    required: true,
+  },
+  score: {
+    type: Number,
+    default: 0,
+  },
+  playedAt: {
+    type: Date,
+    default: Date.now,
+  },
+}, {
+  _id: false,
+});
+
 const userSchema = new mongoose.Schema({
   username: {
     type: String,
@@ -22,13 +55,7 @@ const userSchema = new mongoose.Schema({
     default: 0,
   },
   gamesHistory: {
-    type: [
-      {
-        title: String,
-        score: Number,
-        playedAt: Date,
-      },
-    ],
+    type: [gameHistoryEntrySchema],
     default: [],
   },
   rating: {
