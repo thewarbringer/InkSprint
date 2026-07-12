@@ -120,19 +120,18 @@ export default function GameScreenPage() {
     const normalizedTargetWord = word?.trim();
     if (!normalizedTargetWord) return;
 
-    // Check top 5 predictions for a match against the target
-    const topFive = (topPredictions || []).slice(0, 5);
+    // Check the top 3 predictions for a match against the target
+    const topThree = (topPredictions || []).slice(0, 3);
 
-    const perPrediction = topFive.map((prediction) => {
+    const perPrediction = topThree.map((prediction) => {
       const label = prediction?.label;
       const match = isPredictionMatch(label, normalizedTargetWord);
       return { label, match };
     });
 
+    const topThreeIncludesTarget = perPrediction.some((p) => p.match);
 
-    const topFiveIncludesTarget = perPrediction.some((p) => p.match);
-
-    if (topFiveIncludesTarget && !roundEnded.current) {
+    if (topThreeIncludesTarget && !roundEnded.current) {
       roundEnded.current = true;
       alert("the user has successfully drawn");
       setRoundLocked(true);
@@ -154,6 +153,7 @@ export default function GameScreenPage() {
               confidence={confidence}
               predictedWord={predictedWord}
               topPredictions={topPredictions}
+              isHeld={false}
             />
           </div>
 
@@ -208,20 +208,7 @@ export default function GameScreenPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.05] p-5">
-            <h3 className="mb-3 text-[14px] font-semibold">Round scores</h3>
-            <div className="flex flex-col gap-2.5">
-              {[{ name: "You", score: 3 }, ...opponents.map((o) => ({ name: o.name, score: o.score }))].map(
-                (p) => (
-                  <div key={p.name} className="flex items-center justify-between text-[13.5px]">
-                    <span className="text-muted">{p.name}</span>
-                    <span className="font-mono font-semibold">{p.score}</span>
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-
+          
           <Button variant="ghost" className="justify-center" onClick={() => navigate(`/dashboard`)}>
             Leave sprint
           </Button>

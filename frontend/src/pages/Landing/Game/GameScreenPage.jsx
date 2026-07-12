@@ -207,11 +207,11 @@ export default function GameScreenPage() {
     if (!modelReady || !roomCode || !currentWord || !username || solvedForRoundRef.current) return;
 
     const normalizedTargetWord = currentWord || WORD;
-    const topFiveIncludesTarget = (topPredictions || []).slice(0, 5).some((prediction) =>
+    const topThreeIncludesTarget = (topPredictions || []).slice(0, 3).some((prediction) =>
       isPredictionMatch(prediction?.label, normalizedTargetWord)
     );
 
-    if (topFiveIncludesTarget) {
+    if (topThreeIncludesTarget) {
       solvedForRoundRef.current = true;
       const strokes = canvasRef.current?.getStrokes?.() || [];
       wsRef.current?.send(JSON.stringify({ type: 'solveRound', strokes }));
@@ -223,7 +223,13 @@ export default function GameScreenPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-4 lg:sticky lg:top-4 lg:self-start">
           <div className="flex items-center justify-between">
-            <PredictionPanel word={currentWord || WORD} confidence={confidence} predictedWord={predictedWord} topPredictions={topPredictions} />
+            <PredictionPanel
+              word={currentWord || WORD}
+              confidence={confidence}
+              predictedWord={predictedWord}
+              topPredictions={topPredictions}
+              isHeld={isHeld}
+            />
           </div>
 
           {notification ? (
