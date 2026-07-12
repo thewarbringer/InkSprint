@@ -5,12 +5,37 @@ import { Award } from "lucide-react";
 import AppShell from "../../components/layout/AppShell.jsx";
 import { Avatar, ProgressBar, Badge, StatCard } from "../../components/common/UIAtoms.jsx";
 import { staggerContainer, fadeInUp } from "../../animations/variants.js";
-import { CURRENT_USER, PROFILE_BADGES } from "../../constants/appData.js";
-import { getUserSession } from "../../utils/auth.js";
+import { CURRENT_USER } from "../../constants/appData.js";
+import { getUserSession, fetchCurrentUser, getUserToken, setUserSession } from "../../utils/auth.js";
+import { useEffect, useState } from "react";
 import { Target, Flame, Trophy, Heart } from "lucide-react";
 
 export default function ProfilePage() {
-  const user = getUserSession()?.user || CURRENT_USER;
+  const sessionUser = getUserSession()?.user || null;
+  const [user, setUser] = useState(sessionUser || CURRENT_USER);
+
+  useEffect(() => {
+    if (sessionUser) return; // already have it
+    const token = getUserToken();
+    if (!token) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const fetched = await fetchCurrentUser();
+        if (!cancelled && fetched) {
+          setUser(fetched);
+          try {
+            setUserSession({ user: fetched, token }, true);
+          } catch (e) {}
+        }
+      } catch (err) {
+        console.error('Failed to fetch current user for profile', err);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [sessionUser]);
   const userTag = user.tag || (user.totalGames === undefined ? "New member" : `${user.totalGames} games`);
   const matchHistory = useMemo(() => {
     const games = Array.isArray(user.gamesHistory) ? user.gamesHistory : [];
@@ -25,6 +50,10 @@ export default function ProfilePage() {
         playedAt: game.playedAt,
       }));
   }, [user.gamesHistory]);
+  const gamesPlayedCount = Array.isArray(user.gamesHistory) ? user.gamesHistory.length : (user.gamesPlayed || user.totalGames || 0);
+  const winsCount = Array.isArray(user.gamesHistory) ? user.gamesHistory.filter(g => g.result === 'win').length : 0;
+  const computedWinRate = typeof user.winRate === 'number' && user.winRate >= 0 ? user.winRate : (gamesPlayedCount ? Math.round((winsCount / gamesPlayedCount) * 100) : 0);
+  const displayRank = user.rank || (user.rating ? `#${user.rating}` : '—');
 
   return (
     <AppShell title="Profile" subtitle="Your stats, badges, and match history.">
@@ -39,49 +68,19 @@ export default function ProfilePage() {
             <p className="mx-auto mt-4 max-w-[240px] text-[13px] leading-relaxed text-muted">
               Speed-drawing enthusiast. Favorite category: {user.favoriteCategory || 'All'}.
             </p>
-            <div className="mt-5 text-left">
-              <div className="mb-1.5 flex justify-between text-[12px] text-muted">
-                <span>Level {user.level || 1}</span>
-                <span className="font-mono">{(user.xp || 0).toLocaleString()} / {(user.xpToNext || 30000).toLocaleString()}</span>
-              </div>
-              <ProgressBar value={user.xp || 0} max={user.xpToNext || 30000} />
-            </div>
+            {/* Level and progress removed per request */}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <StatCard icon={Target} label="Games played" value={user.gamesPlayed || user.totalGames || 0} />
-            <StatCard icon={Flame} label="Win rate" value={`${user.winRate || 0}%`} />
-            <StatCard icon={Trophy} label="Rank" value="#2" />
+            <StatCard icon={Target} label="Games played" value={gamesPlayedCount} />
+            <StatCard icon={Flame} label="Win rate" value={`${computedWinRate}%`} />
+            <StatCard icon={Trophy} label="Rank" value={displayRank} />
             <StatCard icon={Heart} label="Favorite" value={user.favoriteCategory || 'All'} />
           </div>
         </div>
 
         <div className="flex flex-col gap-6 lg:col-span-2">
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.05] p-6">
-            <h3 className="mb-4 text-[15px] font-semibold">Badges &amp; achievements</h3>
-            <motion.div
-              variants={staggerContainer(0.05)}
-              initial="hidden"
-              animate="show"
-              className="grid grid-cols-2 gap-3 sm:grid-cols-3"
-            >
-              {PROFILE_BADGES.map((b) => (
-                <motion.div
-                  key={b.title}
-                  variants={fadeInUp}
-                  className={`rounded-[14px] border p-4 text-center ${
-                    b.earned
-                      ? "border-warning/30 bg-warning/[0.08]"
-                      : "border-white/[0.06] bg-white/[0.02] opacity-50"
-                  }`}
-                >
-                  <Award className={`mx-auto mb-2 ${b.earned ? "text-warning" : "text-muted"}`} size={22} />
-                  <div className="text-[13px] font-semibold">{b.title}</div>
-                  <div className="mt-1 text-[11px] text-muted">{b.desc}</div>
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
+          {/* Badges & achievements removed per request */}
 
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.05] p-6">
             <h3 className="mb-4 text-[15px] font-semibold">Match history</h3>

@@ -12,8 +12,10 @@ export default function AppShell({ title, subtitle, children }) {
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
 
-  // Generate a tag based on totalGames or rating
-  const userTag = user.tag || (user.totalGames === undefined ? "New member" : `${user.totalGames} games`);
+  // Generate a tag based on totalGames or rating. If the tag would be "New member",
+  // show the username there instead per UI request.
+  const rawUserTag = user.tag || (user.totalGames === undefined ? "New member" : `${user.totalGames} games`);
+  const userTag = rawUserTag === "New member" ? user.username : rawUserTag;
 
   return (
     <div className="relative min-h-screen overflow-x-clip">

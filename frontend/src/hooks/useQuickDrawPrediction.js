@@ -299,8 +299,6 @@ export default function useQuickDrawPrediction({ canvasRef, targetWord, active, 
       setPredictedWord(label);
       setTopPredictions(rankedPredictions);
 
-      console.log("Top 5 predictions:", rankedPredictions.slice(0, 5));
-
       inputTensor.dispose();
       prediction.dispose();
       imageTensor.dispose();

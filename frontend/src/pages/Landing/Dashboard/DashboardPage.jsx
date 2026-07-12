@@ -5,14 +5,30 @@ import { useEffect, useMemo, useState } from "react";
 import AppShell from "../../../components/layout/AppShell.jsx";
 import { StatCard, Badge } from "../../../components/common/UIAtoms.jsx";
 import { staggerContainer, fadeInUp } from "../../../animations/variants.js";
-import { CURRENT_USER, DASHBOARD_STATS } from "../../../constants/appData.js";
+import { CURRENT_USER } from "../../../constants/appData.js";
 import { fetchCurrentUser, getCurrentUser, setUserSession } from "../../../utils/auth.js";
 
 const ICONS = { Target, Flame, Clock, Sparkles };
 
 export default function DashboardPage() {
   const [currentUser, setCurrentUser] = useState(() => getCurrentUser() || CURRENT_USER);
-  const visibleStats = (DASHBOARD_STATS || []).filter((s) => !["Avg recognition", "Current streak"].includes(s.label));
+  // derive stats from currentUser (fallbacks kept for safety)
+  const stats = [
+    { label: "Games played", value: String(Array.isArray(currentUser.gamesHistory) ? currentUser.gamesHistory.length : (currentUser.gamesPlayed || currentUser.totalGames || 0)), icon: "Target" },
+    (() => {
+      const gamesPlayed = Array.isArray(currentUser.gamesHistory) ? currentUser.gamesHistory.length : (currentUser.gamesPlayed || currentUser.totalGames || 0);
+      const wins = Array.isArray(currentUser.gamesHistory) ? currentUser.gamesHistory.filter(g => g.result === 'win').length : (typeof currentUser.wins === 'number' ? currentUser.wins : 0);
+      const winRate = (typeof currentUser.winRate === 'number' && currentUser.winRate >= 0) ? currentUser.winRate : (gamesPlayed ? Math.round((wins / gamesPlayed) * 100) : 0);
+      return { label: "Win rate", value: `${winRate}%`, icon: "Flame" };
+    })(),
+    (() => {
+      const raw = currentUser.avgRecognition || currentUser.avgRecognitionTime || null;
+      const formatted = raw == null ? '—' : (typeof raw === 'number' ? `${raw}s` : String(raw));
+      return { label: "Avg. recognition", value: formatted, icon: "Clock" };
+    })(),
+    { label: "Current streak", value: String(currentUser.currentStreak || '—'), icon: "Sparkles" },
+  ];
+  const visibleStats = stats;
   const recentGames = useMemo(() => {
     const games = Array.isArray(currentUser.gamesHistory) ? currentUser.gamesHistory : [];
     return games

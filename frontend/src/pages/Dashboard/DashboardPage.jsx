@@ -34,10 +34,22 @@ export default function DashboardPage() {
   }, [user.gamesHistory]);
 
   const stats = [
-    { label: "Games played", value: String(user.gamesPlayed || user.totalGames || 0), icon: "Target" },
-    { label: "Win rate", value: `${user.winRate || 0}%`, icon: "Flame" },
-    { label: "Avg. recognition", value: "1.1s", icon: "Clock" },
-    { label: "Current streak", value: "5", icon: "Sparkles" },
+    // Games played derived from gamesHistory when available
+    { label: "Games played", value: String(Array.isArray(user.gamesHistory) ? user.gamesHistory.length : (user.gamesPlayed || user.totalGames || 0)), icon: "Target" },
+    // Win rate: use user.winRate if provided otherwise compute from gamesHistory
+    (() => {
+      const gamesPlayed = Array.isArray(user.gamesHistory) ? user.gamesHistory.length : (user.gamesPlayed || user.totalGames || 0);
+      const wins = Array.isArray(user.gamesHistory) ? user.gamesHistory.filter(g => g.result === 'win').length : 0;
+      const winRate = (typeof user.winRate === 'number' && user.winRate >= 0) ? user.winRate : (gamesPlayed ? Math.round((wins / gamesPlayed) * 100) : 0);
+      return { label: "Win rate", value: `${winRate}%`, icon: "Flame" };
+    })(),
+    // Avg recognition: prefer an explicit user field, otherwise show fallback
+    (() => {
+      const raw = user.avgRecognition || user.avgRecognitionTime || null;
+      const formatted = raw == null ? '—' : (typeof raw === 'number' ? `${raw}s` : String(raw));
+      return { label: "Avg. recognition", value: formatted, icon: "Clock" };
+    })(),
+    { label: "Current streak", value: String(user.currentStreak || '—'), icon: "Sparkles" },
   ];
 
   return (

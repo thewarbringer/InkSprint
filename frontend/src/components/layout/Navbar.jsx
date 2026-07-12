@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import Button from "../common/Button.jsx";
-import { getCurrentUser, clearUserSession } from "../../utils/auth.js";
+import { getCurrentUser, clearUserSession, fetchCurrentUser, getUserToken, setUserSession } from "../../utils/auth.js";
+import { CURRENT_USER } from "../../constants/appData.js";
 
 const LINKS = [
   { label: "Features", href: "#features" },
   { label: "How it works", href: "#how" },
-  { label: "Leaderboard", href: "#leaderboard" },
   { label: "FAQ", href: "#faq" },
 ];
 
@@ -32,6 +32,33 @@ export default function Navbar() {
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
+
+  // If we don't have a user in session but a token exists, try fetching user info
+  useEffect(() => {
+    if (user) return;
+    const token = getUserToken();
+    if (!token) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const fetched = await fetchCurrentUser();
+        if (!cancelled && fetched) {
+          setUser(fetched);
+          // Persist so other tabs/components can read it too
+          try {
+            setUserSession({ user: fetched, token }, true);
+          } catch (e) {
+            // ignore
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch current user from token', err);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [user]);
 
   const handleLogout = () => {
     clearUserSession();
@@ -68,6 +95,8 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           {user ? (
             <>
+              {/** displayUser falls back to CURRENT_USER so we always have a visible name */}
+              <span className="mr-3 text-[14px] font-medium text-white">{(user || CURRENT_USER)?.username || (user || CURRENT_USER)?.name || (user || CURRENT_USER)?.email || 'Player'}</span>
               <Button as="a" href="/dashboard" variant="ghost">
                 Dashboard
               </Button>

@@ -116,14 +116,25 @@ export default function GameScreenPage() {
 
   // Win check
   useEffect(() => {
+    // Only proceed when we have a target word
     const normalizedTargetWord = word?.trim();
-    const topFiveIncludesTarget = (topPredictions || []).slice(0, 5).some((prediction) =>
-      isPredictionMatch(prediction?.label, normalizedTargetWord)
-    );
+    if (!normalizedTargetWord) return;
 
-    if (modelReady && topFiveIncludesTarget && !roundEnded.current) {
+    // Check top 5 predictions for a match against the target
+    const topFive = (topPredictions || []).slice(0, 5);
+
+    const perPrediction = topFive.map((prediction) => {
+      const label = prediction?.label;
+      const match = isPredictionMatch(label, normalizedTargetWord);
+      return { label, match };
+    });
+
+
+    const topFiveIncludesTarget = perPrediction.some((p) => p.match);
+
+    if (topFiveIncludesTarget && !roundEnded.current) {
       roundEnded.current = true;
-      alert(`You guessed "${word}"!`);
+      alert("the user has successfully drawn");
       setRoundLocked(true);
       const t = setTimeout(() => navigate(`/results/${roomCode}`), 1200);
       return () => clearTimeout(t);

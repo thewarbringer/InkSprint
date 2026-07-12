@@ -11,7 +11,15 @@ function readStoredSession() {
   }
 
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+
+    // Normalize older or unexpected payload shapes where `user` may be nested
+    // e.g. { user: { user: { ... } }, token: '...' }
+    if (parsed && parsed.user && parsed.user.user) {
+      parsed.user = parsed.user.user;
+    }
+
+    return parsed;
   } catch (error) {
     console.error('Failed to parse user session:', error);
     window.localStorage.removeItem(AUTH_STORAGE_KEY);

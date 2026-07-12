@@ -7,7 +7,6 @@ const ICONS = { LayoutDashboard, Swords, Trophy, User, Settings };
 const LINKS = [
   { label: "Dashboard", to: "/dashboard", icon: "LayoutDashboard" },
   { label: "Play", to: "/play", icon: "Swords" },
-  { label: "Leaderboard", to: "/leaderboard", icon: "Trophy" },
   { label: "Profile", to: "/profile", icon: "User" },
   { label: "Settings", to: "/settings", icon: "Settings" },
 ];

@@ -8,7 +8,6 @@ import LobbyPage from "../pages/Landing/Lobby/LobbyPage.jsx";
 import GameScreenPage from "../pages/Landing/Game/GameScreenPage.jsx";
 import ResultsPage from "../pages/Landing/Results/ResultsPage.jsx";
 import ProfilePage from "../pages/Landing/Profile/ProfilePage.jsx";
-import LeaderboardPage from "../pages/Landing/Leaderboard/LeaderboardPage.jsx";
 import SettingsPage from "../pages/Landing/Settings/SettingsPage.jsx";
 import TrialPage from "../pages/Trial/TrialPage.jsx";
 
@@ -26,7 +25,6 @@ export default function AppRoutes() {
         <Route path="/game/:roomCode" element={<GameScreenPage />} />
         <Route path="/results/:roomCode" element={<ResultsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/trial" element={<TrialPage />} />
       </Routes>
