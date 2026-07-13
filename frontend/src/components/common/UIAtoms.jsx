@@ -40,9 +40,9 @@ export function Toggle({ checked, onChange, label }) {
         }`}
       >
         <motion.span
-          animate={{ x: checked ? 20 : 2 }}
+          animate={{ x: checked ? 20 : 0 }}
           transition={{ duration: 0.2 }}
-          className="absolute top-1 h-4 w-4 rounded-full bg-white"
+          className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white"
         />
       </button>
     </label>

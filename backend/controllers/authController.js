@@ -1,9 +1,9 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-
 const { OAuth2Client } = require('google-auth-library');
-const oAuth2Client = new OAuth2Client();
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 
 const buildUserResponse = (user) => ({
   id: user._id,
@@ -12,7 +12,6 @@ const buildUserResponse = (user) => ({
   totalGames: user.totalGames,
   rating: user.rating,
   profilePicture: user.profilePicture || null,
-  gamesHistory: user.gamesHistory || [],
   createdAt: user.createdAt,
 });
 
@@ -73,10 +72,6 @@ exports.signin = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
-    if (!user.password) {
-      return res.status(401).json({ message: 'This account uses Google sign-in. Please use the Google button to log in.' });
-    }
-
     const passwordMatches = await bcrypt.compare(password, user.password);
     if (!passwordMatches) {
       return res.status(401).json({ message: 'Invalid email or password.' });
@@ -105,53 +100,152 @@ exports.me = async (req, res) => {
 };
 
 exports.googleSignin = async (req, res) => {
-  const { credential } = req.body;
-
-  if (!credential) {
-    return res.status(400).json({ message: 'Google credential (ID token) is required.' });
-  }
-
   try {
-    const clientID = process.env.GOOGLE_CLIENT_ID || '52241668622-mm2p36hvtjgsp6qffi4psegevmq8forh.apps.googleusercontent.com';
-    const ticket = await oAuth2Client.verifyIdToken({
-      idToken: credential,
-      audience: clientID,
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({
+        message: "Google token is required.",
+      });
+    }
+
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
     });
 
     const payload = ticket.getPayload();
-    if (!payload) {
-      return res.status(401).json({ message: 'Invalid Google credential.' });
-    }
 
-    const { sub: googleId, email, name, picture } = payload;
+    const email = payload.email.toLowerCase();
 
-    if (!email) {
-      return res.status(400).json({ message: 'Unable to retrieve email from Google account.' });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-
-    // Check if user already exists by email
-    let user = await User.findOne({ gmail: normalizedEmail });
+    let user = await User.findOne({ gmail: email });
 
     if (!user) {
-      return res.status(404).json({ message: 'No account found with this Google email. Please sign up first.' });
+      return res.status(404).json({
+        message: "No account found with this Google email. Please sign up first.",
+      });
     }
 
     // Link Google ID if not already linked
     if (!user.googleId) {
-      user.googleId = googleId;
-      if (picture && !user.profilePicture) {
-        user.profilePicture = picture;
+      user.googleId = payload.sub;
+      if (payload.picture && !user.profilePicture) {
+        user.profilePicture = payload.picture;
       }
       await user.save();
     }
 
-    const token = createToken(user);
-    return res.status(200).json({ user: buildUserResponse(user), token });
-  } catch (error) {
-    console.error('Google signin error:', error);
-    return res.status(500).json({ message: 'Unable to sign in with Google. Please try again.' });
+    const jwtToken = createToken(user);
+
+    return res.status(200).json({
+      user: buildUserResponse(user),
+      token: jwtToken,
+    });
+  } catch (err) {
+    console.error("Google Login Error:", err);
+
+    return res.status(500).json({
+      message: "Google authentication failed.",
+    });
+  }
+};
+
+exports.discordSignin = async (req, res) => {
+  try {
+    const { code, redirect_uri } = req.body;
+
+    if (!code || !redirect_uri) {
+      return res.status(400).json({
+        message: "Discord code and redirect URI are required.",
+      });
+    }
+
+    const clientId = process.env.DISCORD_CLIENT_ID;
+    const clientSecret = process.env.DISCORD_CLIENT_SECRET;
+
+    if (!clientId || clientId === "YOUR_DISCORD_CLIENT_ID") {
+      return res.status(500).json({
+        message: "Discord OAuth is not configured on the server.",
+      });
+    }
+
+    // Exchange authorization code for token
+    const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: "authorization_code",
+        code,
+        redirect_uri,
+      }),
+    });
+
+    const tokenData = await tokenResponse.json();
+
+    if (!tokenResponse.ok) {
+      console.error("Discord Token Exchange Error:", tokenData);
+      return res.status(400).json({
+        message: "Invalid or expired Discord authorization code.",
+      });
+    }
+
+    const accessToken = tokenData.access_token;
+
+    // Fetch user details from Discord
+    const userResponse = await fetch("https://discord.com/api/users/@me", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const userData = await userResponse.json();
+
+    if (!userResponse.ok) {
+      console.error("Discord User Fetch Error:", userData);
+      return res.status(400).json({
+        message: "Failed to fetch user details from Discord.",
+      });
+    }
+
+    const email = userData.email?.toLowerCase();
+    if (!email) {
+      return res.status(400).json({
+        message: "Unable to retrieve email from Discord account.",
+      });
+    }
+
+    let user = await User.findOne({ gmail: email });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "No account found with this Discord email. Please sign up first.",
+      });
+    }
+
+    // Link Discord ID if not already linked
+    if (!user.discordId) {
+      user.discordId = userData.id;
+      if (userData.avatar && !user.profilePicture) {
+        user.profilePicture = `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png`;
+      }
+      await user.save();
+    }
+
+    const jwtToken = createToken(user);
+
+    return res.status(200).json({
+      user: buildUserResponse(user),
+      token: jwtToken,
+    });
+  } catch (err) {
+    console.error("Discord Login Error:", err);
+    return res.status(500).json({
+      message: "Discord authentication failed.",
+    });
   }
 };
 

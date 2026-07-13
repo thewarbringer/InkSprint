@@ -109,6 +109,56 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, [handleGoogleCredential]);
 
+  // Detect and handle Discord redirect code on load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    if (code) {
+      // Clean up search parameters immediately
+      window.history.replaceState({}, document.title, window.location.pathname);
+
+      async function handleDiscordLogin() {
+        setSubmitError(null);
+        try {
+          const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/auth/discord-signin`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              code,
+              redirect_uri: window.location.origin + "/login",
+            }),
+          });
+
+          const result = await res.json();
+
+          // No account found → redirect to signup
+          if (res.status === 404) {
+            navigate("/signup");
+            return;
+          }
+
+          if (!res.ok) {
+            throw new Error(result.message || "Discord sign-in failed.");
+          }
+
+          setUserSession({ user: result.user, token: result.token }, true);
+          navigate("/dashboard");
+        } catch (err) {
+          console.error("Discord login error:", err);
+          setSubmitError(err.message || "Discord sign-in failed. Please try again.");
+        }
+      }
+
+      handleDiscordLogin();
+    }
+  }, [navigate]);
+
+  const handleDiscordClick = () => {
+    const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID || 'YOUR_DISCORD_CLIENT_ID';
+    const redirectUri = encodeURIComponent(window.location.origin + "/login");
+    window.location.href = `https://discord.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=identify+email`;
+  };
+
   async function onSubmit(data) {
     setSubmitError(null);
     try {
@@ -194,7 +244,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <SocialButton label="Discord" icon={<DiscordIcon />} />
+        <SocialButton label="Discord" icon={<DiscordIcon />} onClick={handleDiscordClick} />
       </div>
     </AuthLayout>
   );
