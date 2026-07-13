@@ -11,11 +11,8 @@ const buildUserResponse = (user) => ({
   email: user.gmail,
   totalGames: user.totalGames,
   rating: user.rating,
-<<<<<<< HEAD
   profilePicture: user.profilePicture || null,
-=======
   gamesHistory: user.gamesHistory || [],
->>>>>>> c27c185caac0c93b4d0e49985f2f6109770a273d
   createdAt: user.createdAt,
 });
 
@@ -155,5 +152,46 @@ exports.googleSignin = async (req, res) => {
   } catch (error) {
     console.error('Google signin error:', error);
     return res.status(500).json({ message: 'Unable to sign in with Google. Please try again.' });
+  }
+};
+
+exports.updateAccount = async (req, res) => {
+  const { username, email, password } = req.body;
+
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    if (username && username.trim() !== user.username) {
+      const trimmedName = username.trim();
+      const existingUser = await User.findOne({ username: trimmedName, _id: { $ne: user._id } });
+      if (existingUser) {
+        return res.status(409).json({ message: 'Username is already taken.' });
+      }
+      user.username = trimmedName;
+    }
+
+    if (email && email.trim().toLowerCase() !== user.gmail) {
+      const normalizedEmail = email.trim().toLowerCase();
+      const existingEmail = await User.findOne({ gmail: normalizedEmail, _id: { $ne: user._id } });
+      if (existingEmail) {
+        return res.status(409).json({ message: 'Email is already registered.' });
+      }
+      user.gmail = normalizedEmail;
+    }
+
+    if (password && password.length > 0) {
+      user.password = await bcrypt.hash(password, 10);
+    }
+
+    await user.save();
+    const token = createToken(user);
+
+    return res.status(200).json({ user: buildUserResponse(user), token });
+  } catch (error) {
+    console.error('Update account error:', error);
+    return res.status(500).json({ message: 'Unable to update account. Please try again.' });
   }
 };

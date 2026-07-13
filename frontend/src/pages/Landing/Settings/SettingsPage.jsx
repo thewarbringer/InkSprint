@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Palette, Bell, Shield, Volume2, UserCog, LogOut } from "lucide-react";
 import AppShell from "../../../components/layout/AppShell.jsx";
 import Button from "../../../components/common/Button.jsx";
 import { Toggle } from "../../../components/common/UIAtoms.jsx";
 import FormInput from "../../../components/common/FormInput.jsx";
+import { getCurrentUser, getUserToken, setUserSession, clearUserSession, getApiBaseUrl } from "../../../utils/auth.js";
 
 const TABS = [
   { id: "appearance", label: "Appearance", icon: Palette },
@@ -22,6 +24,7 @@ const ACCENTS = [
 ];
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState("appearance");
   const [accent, setAccent] = useState(ACCENTS[0].value);
 
@@ -39,6 +42,56 @@ export default function SettingsPage() {
   });
 
   const [audio, setAudio] = useState({ master: 80, music: 60, sfx: 90 });
+
+  // Account states
+  const [currentUser, setCurrentUser] = useState(() => getCurrentUser() || { username: "", email: "" });
+  const [username, setUsername] = useState(currentUser.username || "");
+  const [email, setEmail] = useState(currentUser.email || "");
+  const [password, setPassword] = useState("");
+  const [statusMessage, setStatusMessage] = useState(null);
+  const [statusType, setStatusType] = useState("success"); // "success" | "danger"
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleSaveChanges = async (e) => {
+    e.preventDefault();
+    setStatusMessage(null);
+    setIsUpdating(true);
+
+    try {
+      const token = getUserToken();
+      const res = await fetch(`${getApiBaseUrl()}/api/auth/update`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ username, email, password }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.message || "Failed to update account.");
+      }
+
+      // Update session and state
+      setUserSession(result, true);
+      setCurrentUser(result.user);
+      setPassword(""); // Clear password field
+      setStatusType("success");
+      setStatusMessage("Account updated successfully!");
+    } catch (err) {
+      console.error(err);
+      setStatusType("danger");
+      setStatusMessage(err.message || "Something went wrong.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleLogout = () => {
+    clearUserSession();
+    navigate("/login");
+  };
 
   return (
     <AppShell title="Settings" subtitle="Manage your account and preferences.">
@@ -179,16 +232,45 @@ export default function SettingsPage() {
             <div>
               <h3 className="mb-1 text-[16px] font-semibold">Account</h3>
               <p className="mb-6 text-[13px] text-muted">Update your account details.</p>
-              <FormInput label="Email" registerProps={{ defaultValue: "quickpen@inksprint.ai" }} />
-              <FormInput label="Username" registerProps={{ defaultValue: "quickpen" }} />
-              <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-                <Button variant="primary">Save changes</Button>
-                <Button variant="ghost">Change password</Button>
-              </div>
+              
+              <form onSubmit={handleSaveChanges}>
+                <FormInput
+                  label="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                />
+                <FormInput
+                  label="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="username"
+                />
+                <FormInput
+                  label="New Password (leave blank to keep unchanged)"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                />
+
+                {statusMessage && (
+                  <p className={`mb-4 text-[13.5px] ${statusType === "success" ? "text-success" : "text-danger"}`}>
+                    {statusMessage}
+                  </p>
+                )}
+
+                <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+                  <Button type="submit" variant="primary" disabled={isUpdating}>
+                    {isUpdating ? "Saving changes…" : "Save changes"}
+                  </Button>
+                </div>
+              </form>
+
               <div className="mt-8 border-t border-white/[0.08] pt-6">
-                <Button variant="ghost" className="text-danger hover:bg-danger/[0.08]">
+                <Button variant="ghost" className="text-danger hover:bg-danger/[0.08]" onClick={handleLogout}>
                   <LogOut size={15} />
-                  Log out of all devices
+                  Log out of this device
                 </Button>
               </div>
             </div>
