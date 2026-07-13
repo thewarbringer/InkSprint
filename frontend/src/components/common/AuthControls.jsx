@@ -1,8 +1,9 @@
-export function SocialButton({ label, icon, ...props }) {
+export function SocialButton({ label, icon, disabled, ...props }) {
   return (
     <button
       type="button"
-      className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-white/[0.08] bg-white/[0.04] py-2.5 text-[13.5px] font-medium text-white transition-colors hover:bg-white/[0.08]"
+      disabled={disabled}
+      className={`flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-white/[0.08] bg-white/[0.04] py-2.5 text-[13.5px] font-medium text-white transition-colors hover:bg-white/[0.08] ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       {...props}
     >
       {icon}

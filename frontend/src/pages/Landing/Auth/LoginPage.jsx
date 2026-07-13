@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,12 +14,100 @@ import { setUserSession } from "../../../utils/auth.js";
 
 export default function LoginPage() {
   const [submitError, setSubmitError] = useState(null);
+  const [googleReady, setGoogleReady] = useState(false);
+  const googleBtnRef = useRef(null);
   const navigate = useNavigate();
+  
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: zodResolver(loginSchema) });
+
+  // Google credential callback — receives the ID token from Google
+  const handleGoogleCredential = useCallback(
+    async (response) => {
+      setSubmitError(null);
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/auth/google-signin`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ credential: response.credential }),
+        });
+
+        const result = await res.json();
+
+        // No account found → redirect to signup
+        if (res.status === 404) {
+          navigate("/signup");
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error(result.message || "Google sign-in failed.");
+        }
+
+        setUserSession({ user: result.user, token: result.token }, true);
+        navigate("/dashboard");
+      } catch (err) {
+        console.error("Google login error:", err);
+        setSubmitError(err.message || "Google sign-in failed. Please try again.");
+      }
+    },
+    [navigate]
+  );
+
+  // Initialize Google Identity Services once the script loads
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+    function initGoogleSignIn() {
+      if (!window.google?.accounts?.id) return false;
+
+      try {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleGoogleCredential,
+          auto_select: false,
+        });
+
+        if (googleBtnRef.current) {
+          // Render Google's official sign-in button into our container
+          window.google.accounts.id.renderButton(googleBtnRef.current, {
+            theme: "filled_black",
+            size: "large",
+            shape: "pill",
+            text: "continue_with",
+            width: 350,
+          });
+        }
+
+        setGoogleReady(true);
+        return true;
+      } catch (err) {
+        console.error("Google Sign-In initialization error:", err);
+        return false;
+      }
+    }
+
+    // Try immediately (script might already be loaded)
+    if (initGoogleSignIn()) return;
+
+    // Poll until the GSI script loads (check every 300ms, up to 15s)
+    let attempts = 0;
+    const maxAttempts = 50;
+    const interval = setInterval(() => {
+      attempts++;
+      if (initGoogleSignIn() || attempts >= maxAttempts) {
+        clearInterval(interval);
+        if (attempts >= maxAttempts && !window.google?.accounts?.id) {
+          console.warn("Google Sign-In script failed to load after 15 seconds");
+        }
+      }
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, [handleGoogleCredential]);
 
   async function onSubmit(data) {
     setSubmitError(null);
@@ -93,22 +181,22 @@ export default function LoginPage() {
 
       <OrDivider />
 
-      <div className="flex gap-3">
-        <SocialButton label="Google" icon={<GoogleIcon />} />
+      <div className="flex flex-col gap-3">
+        {/* Google renders its own official button here */}
+        <div
+          ref={googleBtnRef}
+          className="flex justify-center rounded-[10px] overflow-hidden [&>div]:!w-full [&>div>div]:!w-full"
+        />
+        {/* Fallback if Google button hasn't loaded */}
+        {!googleReady && (
+          <div className="text-center text-[13px] text-muted py-2">
+            Loading Google Sign-In…
+          </div>
+        )}
+
         <SocialButton label="Discord" icon={<DiscordIcon />} />
       </div>
     </AuthLayout>
-  );
-}
-
-function GoogleIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.25 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.85A10.99 10.99 0 0 0 12 23z" fill="#34A853"/>
-      <path d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.85z" fill="#FBBC05"/>
-      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1a10.99 10.99 0 0 0-9.82 6.05l3.66 2.85C6.71 7.3 9.14 5.38 12 5.38z" fill="#EA4335"/>
-    </svg>
   );
 }
 

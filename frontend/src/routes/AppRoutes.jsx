@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LandingPage from "../pages/Landing/LandingPage.jsx";
 import LoginPage from "../pages/Landing/Auth/LoginPage.jsx";
 import SignupPage from "../pages/Landing/Auth/SignupPage.jsx";
@@ -10,14 +10,24 @@ import ResultsPage from "../pages/Landing/Results/ResultsPage.jsx";
 import ProfilePage from "../pages/Landing/Profile/ProfilePage.jsx";
 import LeaderboardPage from "../pages/Landing/Leaderboard/LeaderboardPage.jsx";
 import SettingsPage from "../pages/Landing/Settings/SettingsPage.jsx";
+import { getUserToken } from "../utils/auth.js";
+
+/**
+ * GuestRoute — only renders children if the user is NOT logged in.
+ * If already logged in, redirects to /dashboard.
+ */
+function GuestRoute({ children }) {
+  const isLoggedIn = Boolean(getUserToken());
+  return isLoggedIn ? <Navigate to="/dashboard" replace /> : children;
+}
 
 export default function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/" element={<GuestRoute><LandingPage /></GuestRoute>} />
+        <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
+        <Route path="/signup" element={<GuestRoute><SignupPage /></GuestRoute>} />
 
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/play" element={<RoomSetupPage />} />
@@ -30,5 +40,4 @@ export default function AppRoutes() {
       </Routes>
     </BrowserRouter>
   );
-}
- 
+}
