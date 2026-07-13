@@ -5,7 +5,7 @@ import { Copy, Check, Crown, Send } from "lucide-react";
 import AppShell from "../../../components/layout/AppShell.jsx";
 import Button from "../../../components/common/Button.jsx";
 import { Avatar, Badge } from "../../../components/common/UIAtoms.jsx";
-import { getCurrentUser, getUserToken } from "../../../utils/auth.js";
+import { fetchCurrentUser, getCurrentUser, getUserToken, setUserSession } from "../../../utils/auth.js";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -20,8 +20,8 @@ export default function LobbyPage() {
   const [loadError, setLoadError] = useState(null);
   const [wsConnected, setWsConnected] = useState(false);
   const [gameState, setGameState] = useState('waiting');
+  const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
 
-  const currentUser = getCurrentUser();
   const token = getUserToken();
   const currentUsername = currentUser?.username;
   const wsRef = useRef(null);
@@ -123,6 +123,28 @@ export default function LobbyPage() {
       setLoadError(err.message || 'Unable to load room details.');
     }
   }
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const hydrateCurrentUser = async () => {
+      const storedUser = getCurrentUser();
+      if (storedUser?.username) {
+        setCurrentUser(storedUser);
+        return;
+      }
+
+      const freshUser = await fetchCurrentUser();
+      if (!isMounted) return;
+
+      if (freshUser) {
+        setCurrentUser(freshUser);
+        setUserSession({ user: freshUser });
+      }
+    };
+
+    hydrateCurrentUser();
+  }, []);
 
   useEffect(() => {
     setIsLoading(true);

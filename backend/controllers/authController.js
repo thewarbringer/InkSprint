@@ -11,7 +11,11 @@ const buildUserResponse = (user) => ({
   email: user.gmail,
   totalGames: user.totalGames,
   rating: user.rating,
+<<<<<<< HEAD
   profilePicture: user.profilePicture || null,
+=======
+  gamesHistory: user.gamesHistory || [],
+>>>>>>> c27c185caac0c93b4d0e49985f2f6109770a273d
   createdAt: user.createdAt,
 });
 

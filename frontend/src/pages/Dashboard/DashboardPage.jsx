@@ -1,13 +1,13 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Target, Flame, Clock, Sparkles, Zap, Users2 } from "lucide-react";
+import { useMemo } from "react";
 import AppShell from "../../components/layout/AppShell.jsx";
-import { StatCard, ProgressBar, Avatar, Badge } from "../../components/common/UIAtoms.jsx";
+import { StatCard, Badge } from "../../components/common/UIAtoms.jsx";
 import { staggerContainer, fadeInUp } from "../../animations/variants.js";
 import {
   CURRENT_USER,
   DASHBOARD_STATS,
-  RECENT_MATCHES,
   FRIENDS,
   DAILY_CHALLENGE,
 } from "../../constants/appData.js";
@@ -18,13 +18,38 @@ const ICONS = { Target, Flame, Clock, Sparkles };
 export default function DashboardPage() {
   const user = getUserSession()?.user || CURRENT_USER;
   const userTag = user.tag || (user.totalGames === undefined ? "New member" : `${user.totalGames} games`);
+  const recentGames = useMemo(() => {
+    const games = Array.isArray(user.gamesHistory) ? user.gamesHistory : [];
+    return games
+      .slice()
+      .sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt))
+      .slice(0, 5)
+      .map((game) => ({
+        roomName: game.roomName || game.roomId || "Private room",
+        roomId: game.roomId || "",
+        result: game.result === "win" ? "win" : "loss",
+        score: game.score ?? 0,
+        playedAt: game.playedAt,
+      }));
+  }, [user.gamesHistory]);
 
-  // Build stats from user data
   const stats = [
-    { label: "Games played", value: String(user.gamesPlayed || user.totalGames || 0), icon: "Target" },
-    { label: "Win rate", value: `${user.winRate || 0}%`, icon: "Flame" },
-    { label: "Avg. recognition", value: "1.1s", icon: "Clock" },
-    { label: "Current streak", value: "5", icon: "Sparkles" },
+    // Games played derived from gamesHistory when available
+    { label: "Games played", value: String(Array.isArray(user.gamesHistory) ? user.gamesHistory.length : (user.gamesPlayed || user.totalGames || 0)), icon: "Target" },
+    // Win rate: use user.winRate if provided otherwise compute from gamesHistory
+    (() => {
+      const gamesPlayed = Array.isArray(user.gamesHistory) ? user.gamesHistory.length : (user.gamesPlayed || user.totalGames || 0);
+      const wins = Array.isArray(user.gamesHistory) ? user.gamesHistory.filter(g => g.result === 'win').length : 0;
+      const winRate = (typeof user.winRate === 'number' && user.winRate >= 0) ? user.winRate : (gamesPlayed ? Math.round((wins / gamesPlayed) * 100) : 0);
+      return { label: "Win rate", value: `${winRate}%`, icon: "Flame" };
+    })(),
+    // Avg recognition: prefer an explicit user field, otherwise show fallback
+    (() => {
+      const raw = user.avgRecognition || user.avgRecognitionTime || null;
+      const formatted = raw == null ? '—' : (typeof raw === 'number' ? `${raw}s` : String(raw));
+      return { label: "Avg. recognition", value: formatted, icon: "Clock" };
+    })(),
+    { label: "Current streak", value: String(user.currentStreak || '—'), icon: "Sparkles" },
   ];
 
   return (
@@ -94,21 +119,28 @@ export default function DashboardPage() {
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.05] p-6">
             <h3 className="mb-4 text-[15px] font-semibold">Recent matches</h3>
             <div className="flex flex-col divide-y divide-white/[0.06]">
-              {RECENT_MATCHES.map((m, i) => (
-                <div key={i} className="flex items-center justify-between py-3">
+              {recentGames.length > 0 ? recentGames.map((m, i) => (
+                <div key={`${m.roomName}-${i}`} className="flex items-center justify-between py-3">
                   <div className="flex items-center gap-3">
                     <Badge tone={m.result === "win" ? "success" : "danger"}>
                       {m.result === "win" ? "WIN" : "LOSS"}
                     </Badge>
-                    <span className="font-mono text-[13.5px]">{m.word}</span>
+                    <div className="flex flex-col">
+                      <span className="font-mono text-[13.5px]">{m.roomName}</span>
+                      {m.roomId ? <span className="text-[11px] text-muted">Room {m.roomId}</span> : null}
+                    </div>
                   </div>
                   <div className="flex items-center gap-5 text-[12.5px] text-muted">
-                    <span>{m.time}</span>
-                    <span className="text-success">{m.xp}</span>
-                    <span>{m.ago}</span>
+                    <Link to={`/results/${encodeURIComponent(m.roomId)}`} className="text-secondary hover:text-secondary/80">
+                      View results
+                    </Link>
+                    <span>{m.score} pts</span>
+                    <span>{new Date(m.playedAt).toLocaleDateString()}</span>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="py-3 text-[13px] text-muted">No games played yet.</div>
+              )}
             </div>
           </div>
         </div>

@@ -1,8 +1,14 @@
 const ActiveGame = require('../models/ActiveGame');
 const EndedGame = require('../models/EndedGame');
 const { broadcastToRoom } = require('../wsServer');
+const categories = require('../categories.json');
 
 const ALPHANUMERIC_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+const getRandomWord = () => {
+  const index = Math.floor(Math.random() * categories.length);
+  return categories[index] || '';
+};
 
 const generateRoomId = () => {
   let id = '';
@@ -158,11 +164,26 @@ exports.startGame = async (req, res) => {
     }
 
     game.state = 'started';
+    game.roundsDone = 0;
+    game.timerSeconds = 45;
+    game.players.forEach((player) => {
+      player.hold = false;
+    });
+    game.currentWord = getRandomWord();
     await game.save();
 
     broadcastToRoom(roomId, {
       type: 'start',
       roomId,
+      word: game.currentWord,
+      roundsDone: game.roundsDone,
+      rounds: game.rounds,
+      timerSeconds: game.timerSeconds,
+      players: game.players.map((playerEntry) => ({
+        username: playerEntry.username,
+        scores: playerEntry.scores || 0,
+        hold: Boolean(playerEntry.hold),
+      })),
     });
 
     return res.status(200).json({ game });

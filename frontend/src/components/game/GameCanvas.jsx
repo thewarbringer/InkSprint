@@ -17,10 +17,10 @@ function computeConfidence(inkAmount, elapsedMs) {
   return Math.max(0, Math.min(97, raw));
 }
 
-const SMALL_CANVAS_WIDTH = 320;
-const SMALL_CANVAS_HEIGHT = 320;
-const LARGE_CANVAS_WIDTH = 720;
-const LARGE_CANVAS_HEIGHT = 480;
+const SMALL_CANVAS_WIDTH = 550;
+const SMALL_CANVAS_HEIGHT = 550;
+const LARGE_CANVAS_WIDTH = 550;
+const LARGE_CANVAS_HEIGHT = 550;
 
 function getCanvasSize() {
   if (typeof window === "undefined") {
@@ -35,9 +35,11 @@ function getCanvasSize() {
 const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, socketRef, roomId, onRemoteStroke, clearSignal }, ref) {
   const canvasRef = useRef(null);
   const isDrawing = useRef(false);
+  const activePointerId = useRef(null);
   const inkAmount = useRef(0);
   const startTime = useRef(performance.now());
   const lastPoint = useRef(null);
+  const strokesRef = useRef([]);
   const isEmptyRef = useRef(true);
   const [isEmpty, setIsEmpty] = useState(true);
 
@@ -46,12 +48,23 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
-    const { width, height } = getCanvasSize();
-    ctx.clearRect(0, 0, width, height);
+    if (!ctx) return;
+
+    const width = 550;
+    const height = 550;
+    canvas.width = Math.round(width * (window.devicePixelRatio || 1));
+    canvas.height = Math.round(height * (window.devicePixelRatio || 1));
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
     inkAmount.current = 0;
     startTime.current = performance.now();
     lastPoint.current = null;
+    strokesRef.current = [];
     isDrawing.current = false;
+    activePointerId.current = null;
     isEmptyRef.current = true;
     setIsEmpty(true);
     onConfidenceChange?.(0);
@@ -61,37 +74,53 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
     clear() {
       resetCanvas();
     },
+    getCanvas() {
+      return canvasRef.current;
+    },
+    getStrokes() {
+      return strokesRef.current;
+    },
   }));
 
   useEffect(() => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
+
     const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
     function sizeCanvas() {
-      const { width, height } = getCanvasSize();
-      canvas.width = width * devicePixelRatio;
-      canvas.height = height * devicePixelRatio;
-      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      const width = 550;
+      const height = 550;
+      const dpr = window.devicePixelRatio || 1;
+
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      ctx.strokeStyle = "#00D4FF";
-      ctx.lineWidth = 4;
-      ctx.shadowColor = "rgba(0,212,255,0.5)";
-      ctx.shadowBlur = 6;
-      ctx.clearRect(0, 0, width, height);
+      ctx.strokeStyle = "#000000";
+      ctx.lineWidth = 18;
+      ctx.shadowColor = "rgba(0, 0, 0, 0.15)";
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, width, height);
     }
 
     sizeCanvas();
+    window.addEventListener("resize", sizeCanvas);
+
+    return () => window.removeEventListener("resize", sizeCanvas);
   }, []);
 
   function getPoint(e) {
-    const rect = canvasRef.current.getBoundingClientRect();
-    const { width, height } = getCanvasSize();
-    const scaleX = width / rect.width;
-    const scaleY = height / rect.height;
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+
+    const rect = canvas.getBoundingClientRect();
     return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
     };
   }
 
@@ -100,21 +129,50 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
     socketRef.current.send(JSON.stringify({ type: 'drawStroke', stroke }));
   }
 
+  function endStroke() {
+    if (!isDrawing.current) return;
+
+    isDrawing.current = false;
+    if (activePointerId.current !== null) {
+      try {
+        canvasRef.current?.releasePointerCapture(activePointerId.current);
+      } catch {
+        // Ignore if the pointer is already released.
+      }
+      activePointerId.current = null;
+    }
+  }
+
   function handlePointerDown(e) {
-    if (locked) return;
+    if (locked || e.button !== 0) return;
+    e.preventDefault();
+
+    const point = getPoint(e);
+    if (!point) return;
+
     isDrawing.current = true;
+    activePointerId.current = e.pointerId;
     isEmptyRef.current = false;
     setIsEmpty(false);
-    lastPoint.current = getPoint(e);
-    canvasRef.current.setPointerCapture(e.pointerId);
+    lastPoint.current = point;
+    e.currentTarget.setPointerCapture(e.pointerId);
   }
 
   function handlePointerMove(e) {
-    if (!isDrawing.current || locked) return;
-    const ctx = canvasRef.current.getContext("2d");
+    if (!isDrawing.current || locked || e.pointerId !== activePointerId.current) return;
+    e.preventDefault();
+
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx || !lastPoint.current) return;
+
     const point = getPoint(e);
     const prev = lastPoint.current;
 
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 18;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     ctx.beginPath();
     ctx.moveTo(prev.x, prev.y);
     ctx.lineTo(point.x, point.y);
@@ -124,17 +182,31 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
     inkAmount.current += dist;
     lastPoint.current = point;
 
-    sendStroke({
+    const stroke = {
       from: prev,
       to: point,
-    });
+    };
+
+    strokesRef.current.push(stroke);
+    sendStroke(stroke);
 
     const elapsed = performance.now() - startTime.current;
     onConfidenceChange?.(computeConfidence(inkAmount.current, elapsed));
   }
 
-  function handlePointerUp() {
-    isDrawing.current = false;
+  function handlePointerUp(e) {
+    if (e?.pointerId !== undefined && e.pointerId !== activePointerId.current) return;
+    endStroke();
+  }
+
+  function handlePointerCancel(e) {
+    if (e?.pointerId !== undefined && e.pointerId !== activePointerId.current) return;
+    endStroke();
+  }
+
+  function handleLostPointerCapture(e) {
+    if (e?.pointerId !== undefined && e.pointerId !== activePointerId.current) return;
+    endStroke();
   }
 
   useEffect(() => {
@@ -147,7 +219,8 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
     if (!canvasRef.current || !onRemoteStroke) return;
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas?.getContext('2d');
+    if (!ctx) return;
 
     const drawRemoteStroke = (stroke) => {
       if (!stroke?.from || !stroke?.to) return;
@@ -161,9 +234,9 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
   }, [onRemoteStroke]);
 
   return (
-    <div className="relative h-full min-h-[240px] w-full overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0e24]">
+    <div className="relative mx-auto overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0e24]" style={{ width: 550, height: 550, maxWidth: "100%" }}>
       {isEmpty && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[14px] text-white/[0.2]">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[14px] text-black/[0.25]">
           Start drawing here
         </div>
       )}
@@ -172,9 +245,10 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-        className={`h-full w-full touch-none ${locked ? "cursor-not-allowed" : "cursor-crosshair"}`}
-        style={{ width: "100%", height: "100%" }}
+        onPointerCancel={handlePointerCancel}
+        onLostPointerCapture={handleLostPointerCapture}
+        className={`h-full w-full touch-none bg-white ${locked ? "cursor-not-allowed" : "cursor-crosshair"}`}
+        style={{ width: 550, height: 550, maxWidth: "100%" }}
       />
     </div>
   );

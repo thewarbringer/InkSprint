@@ -1,4 +1,5 @@
 const WebSocket = require('ws');
+const ActiveGame = require('./models/ActiveGame');
 
 const rooms = new Map();
 
@@ -24,7 +25,7 @@ function initWebsocket(server) {
       }
       rooms.get(roomId).add(socket);
 
-      socket.on('message', (message) => {
+      socket.on('message', async (message) => {
         let data;
         try {
           data = JSON.parse(message);
@@ -51,6 +52,41 @@ function initWebsocket(server) {
             stroke: data.stroke,
             username,
           }));
+        }
+
+        if (data.type === 'solveRound') {
+          try {
+            const game = await ActiveGame.findOne({ roomId, state: 'started' });
+            if (!game) return;
+
+            const player = game.players.find((playerEntry) => playerEntry.username === username);
+            if (!player || player.hold) return;
+
+            const remainingTime = game.timerSeconds || 45;
+            player.hold = true;
+            player.scores = (player.scores || 0) + remainingTime;
+            await game.save();
+
+            broadcastToRoom(roomId, {
+              type: 'roundSolved',
+              roomId,
+              player: {
+                username,
+                scores: player.scores,
+                hold: Boolean(player.hold),
+              },
+              players: game.players.map((playerEntry) => ({
+                username: playerEntry.username,
+                scores: playerEntry.scores || 0,
+                hold: Boolean(playerEntry.hold),
+              })),
+              timerSeconds: game.timerSeconds,
+              strokes: Array.isArray(data.strokes) ? data.strokes : [],
+              message: `${username} successfully drew ${game.currentWord}!`,
+            });
+          } catch (error) {
+            console.error('Solve round error:', error);
+          }
         }
       });
 

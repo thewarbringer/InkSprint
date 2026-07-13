@@ -32,17 +32,6 @@ export default function ResultsPage() {
             <div className="mb-1 text-[13px] uppercase tracking-[0.06em] text-muted">
               {r.isYou ? "You won the round" : `${r.winner} won the round`}
             </div>
-            <div className="mb-4 font-mono text-[32px] font-bold">{r.word}</div>
-            <div className="flex justify-center gap-8 text-[13.5px] text-muted">
-              <div>
-                <div className="font-mono text-[18px] text-white">{r.recognitionTime}</div>
-                recognition time
-              </div>
-              <div>
-                <div className="font-mono text-[18px] text-success">+{r.xpGained} XP</div>
-                earned
-              </div>
-            </div>
           </motion.div>
 
           {r.achievementsUnlocked.length > 0 && (

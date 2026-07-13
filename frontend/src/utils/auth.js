@@ -11,7 +11,15 @@ function readStoredSession() {
   }
 
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+
+    // Normalize older or unexpected payload shapes where `user` may be nested
+    // e.g. { user: { user: { ... } }, token: '...' }
+    if (parsed && parsed.user && parsed.user.user) {
+      parsed.user = parsed.user.user;
+    }
+
+    return parsed;
   } catch (error) {
     console.error('Failed to parse user session:', error);
     window.localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -22,7 +30,16 @@ function readStoredSession() {
 
 export function setUserSession(data, remember = true) {
   if (!data || typeof window === 'undefined') return;
-  const payload = data.token ? data : { user: data, token: null };
+
+  const existingSession = readStoredSession();
+  const existingToken = existingSession?.token || null;
+  const payload = data && Object.prototype.hasOwnProperty.call(data, 'token')
+    ? { ...data, token: data.token || existingToken }
+    : { user: data, token: existingToken };
+
+  if (payload.user && Array.isArray(payload.user.gamesHistory)) {
+    payload.user.gamesHistory = payload.user.gamesHistory.slice().sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt));
+  }
 
   if (remember) {
     window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(payload));
