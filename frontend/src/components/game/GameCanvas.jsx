@@ -32,7 +32,7 @@ function getCanvasSize() {
     : { width: LARGE_CANVAS_WIDTH, height: LARGE_CANVAS_HEIGHT };
 }
 
-const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, socketRef, roomId, onRemoteStroke, clearSignal }, ref) {
+const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, socketRef, roomId, onRemoteStroke, clearSignal, activeTool = "pencil" }, ref) {
   const canvasRef = useRef(null);
   const isDrawing = useRef(false);
   const activePointerId = useRef(null);
@@ -94,24 +94,34 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
       const height = 550;
       const dpr = window.devicePixelRatio || 1;
 
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // Only set canvas size if it has changed or is unitialized (to prevent wiping canvas on tool switch)
+      const targetWidth = Math.round(width * dpr);
+      const targetHeight = Math.round(height * dpr);
+
+      if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+      } else {
+        // Ensure transform is preserved
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      ctx.strokeStyle = "#000000";
-      ctx.lineWidth = 18;
+      ctx.strokeStyle = activeTool === "eraser" ? "#ffffff" : "#000000";
+      ctx.lineWidth = activeTool === "eraser" ? 36 : 18;
       ctx.shadowColor = "rgba(0, 0, 0, 0.15)";
       ctx.shadowBlur = 0;
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, width, height);
     }
 
     sizeCanvas();
     window.addEventListener("resize", sizeCanvas);
 
     return () => window.removeEventListener("resize", sizeCanvas);
-  }, []);
+  }, [activeTool]);
 
   function getPoint(e) {
     const canvas = canvasRef.current;
@@ -158,6 +168,7 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
     e.currentTarget.setPointerCapture(e.pointerId);
   }
 
+  // Draw stroke
   function handlePointerMove(e) {
     if (!isDrawing.current || locked || e.pointerId !== activePointerId.current) return;
     e.preventDefault();
@@ -169,8 +180,8 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
     const point = getPoint(e);
     const prev = lastPoint.current;
 
-    ctx.strokeStyle = "#000000";
-    ctx.lineWidth = 18;
+    ctx.strokeStyle = activeTool === "eraser" ? "#ffffff" : "#000000";
+    ctx.lineWidth = activeTool === "eraser" ? 36 : 18;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.beginPath();
@@ -185,6 +196,8 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
     const stroke = {
       from: prev,
       to: point,
+      color: activeTool === "eraser" ? "#ffffff" : "#000000",
+      width: activeTool === "eraser" ? 36 : 18,
     };
 
     strokesRef.current.push(stroke);
@@ -199,6 +212,7 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
     endStroke();
   }
 
+  // Cancel stroke
   function handlePointerCancel(e) {
     if (e?.pointerId !== undefined && e.pointerId !== activePointerId.current) return;
     endStroke();
@@ -227,11 +241,20 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
       ctx.beginPath();
       ctx.moveTo(stroke.from.x, stroke.from.y);
       ctx.lineTo(stroke.to.x, stroke.to.y);
+      ctx.strokeStyle = stroke.color || "#000000";
+      ctx.lineWidth = stroke.width || 18;
       ctx.stroke();
     };
 
     onRemoteStroke(drawRemoteStroke);
   }, [onRemoteStroke]);
+
+  // Construct custom black outline cursor style for better visibility
+  const cursorStyle = locked
+    ? "not-allowed"
+    : activeTool === "eraser"
+    ? "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'><circle cx='18' cy='18' r='17' fill='none' stroke='black' stroke-width='1.5'/><circle cx='18' cy='18' r='17' fill='none' stroke='white' stroke-width='0.5'/></svg>\") 18 18, pointer"
+    : "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'><circle cx='9' cy='9' r='8' fill='black' stroke='white' stroke-width='1.5'/></svg>\") 9 9, crosshair";
 
   return (
     <div className="relative mx-auto overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0e24]" style={{ width: 550, height: 550, maxWidth: "100%" }}>
@@ -247,8 +270,13 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
         onLostPointerCapture={handleLostPointerCapture}
-        className={`h-full w-full touch-none bg-white ${locked ? "cursor-not-allowed" : "cursor-crosshair"}`}
-        style={{ width: 550, height: 550, maxWidth: "100%" }}
+        className="h-full w-full touch-none bg-white"
+        style={{
+          width: 550,
+          height: 550,
+          maxWidth: "100%",
+          cursor: cursorStyle,
+        }}
       />
     </div>
   );

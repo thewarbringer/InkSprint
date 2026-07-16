@@ -109,56 +109,6 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, [handleGoogleCredential]);
 
-  // Detect and handle Discord redirect code on load
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    if (code) {
-      // Clean up search parameters immediately
-      window.history.replaceState({}, document.title, window.location.pathname);
-
-      async function handleDiscordLogin() {
-        setSubmitError(null);
-        try {
-          const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/auth/discord-signin`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              code,
-              redirect_uri: window.location.origin + "/login",
-            }),
-          });
-
-          const result = await res.json();
-
-          // No account found → redirect to signup
-          if (res.status === 404) {
-            navigate("/signup");
-            return;
-          }
-
-          if (!res.ok) {
-            throw new Error(result.message || "Discord sign-in failed.");
-          }
-
-          setUserSession({ user: result.user, token: result.token }, true);
-          navigate("/dashboard");
-        } catch (err) {
-          console.error("Discord login error:", err);
-          setSubmitError(err.message || "Discord sign-in failed. Please try again.");
-        }
-      }
-
-      handleDiscordLogin();
-    }
-  }, [navigate]);
-
-  const handleDiscordClick = () => {
-    const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID || 'YOUR_DISCORD_CLIENT_ID';
-    const redirectUri = encodeURIComponent(window.location.origin + "/login");
-    window.location.href = `https://discord.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=identify+email`;
-  };
-
   async function onSubmit(data) {
     setSubmitError(null);
     try {
@@ -243,17 +193,7 @@ export default function LoginPage() {
             Loading Google Sign-In…
           </div>
         )}
-
-        <SocialButton label="Discord" icon={<DiscordIcon />} onClick={handleDiscordClick} />
       </div>
     </AuthLayout>
-  );
-}
-
-function DiscordIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="#5865F2">
-      <path d="M20.32 4.37a19.8 19.8 0 0 0-4.9-1.52.07.07 0 0 0-.08.04c-.21.38-.45.87-.61 1.26a18.3 18.3 0 0 0-5.46 0 12.6 12.6 0 0 0-.62-1.26.08.08 0 0 0-.08-.04c-1.7.29-3.36.8-4.9 1.52a.07.07 0 0 0-.03.03C.53 9.05-.32 13.58.1 18.06a.08.08 0 0 0 .03.06 19.9 19.9 0 0 0 6 3.03.08.08 0 0 0 .08-.03c.46-.63.87-1.3 1.23-2a.08.08 0 0 0-.04-.11 13 13 0 0 1-1.87-.9.08.08 0 0 1 0-.13c.13-.09.25-.19.37-.28a.08.08 0 0 1 .08 0c3.93 1.8 8.18 1.8 12.06 0a.08.08 0 0 1 .08 0c.12.1.24.19.37.28a.08.08 0 0 1 0 .13c-.6.35-1.22.65-1.87.9a.08.08 0 0 0-.04.11c.36.7.78 1.37 1.23 2a.08.08 0 0 0 .08.03 19.9 19.9 0 0 0 6.03-3.03.08.08 0 0 0 .03-.06c.5-5.18-.83-9.67-3.51-13.66a.06.06 0 0 0-.03-.03zM8.02 15.33c-1.18 0-2.15-1.08-2.15-2.42 0-1.33.95-2.42 2.15-2.42 1.21 0 2.17 1.1 2.15 2.42 0 1.34-.94 2.42-2.15 2.42zm7.97 0c-1.18 0-2.15-1.08-2.15-2.42 0-1.33.95-2.42 2.15-2.42 1.21 0 2.17 1.1 2.15 2.42 0 1.34-.93 2.42-2.15 2.42z"/>
-    </svg>
   );
 }

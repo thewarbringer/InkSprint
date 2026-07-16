@@ -95,9 +95,9 @@ export default function SignupPage() {
             label={
               <>
                 I agree to the{" "}
-                <a href="#" className="text-secondary hover:underline">Terms of Service</a>{" "}
+                <Link to="/terms" className="text-secondary hover:underline">Terms of Service</Link>{" "}
                 and{" "}
-                <a href="#" className="text-secondary hover:underline">Privacy Policy</a>
+                <Link to="/privacy" className="text-secondary hover:underline">Privacy Policy</Link>
               </>
             }
             registerProps={register("terms")}
