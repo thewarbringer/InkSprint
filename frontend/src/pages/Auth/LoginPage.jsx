@@ -60,6 +60,11 @@ export default function LoginPage() {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
     function initGoogleSignIn() {
+      if (!clientId) {
+        console.error('Missing VITE_GOOGLE_CLIENT_ID env var. Add it to frontend/.env');
+        return false;
+      }
+
       if (!window.google?.accounts?.id) return false;
 
       try {
