@@ -62,6 +62,7 @@ export default function GameScreenPage() {
   const [players, setPlayers] = useState([]);
   const [notification, setNotification] = useState('');
   const [roundStartedAt, setRoundStartedAt] = useState(Date.now());
+  const [activeTool, setActiveTool] = useState("pencil"); // "pencil" | "eraser"
   const roundEnded = useRef(false);
   const wsRef = useRef(null);
   const solvedForRoundRef = useRef(false);
@@ -238,7 +239,7 @@ export default function GameScreenPage() {
             </div>
           ) : null}
 
-          <div className="flex h-[320px] flex-col gap-3 sm:h-[420px] lg:h-[520px]">
+          <div className="flex flex-col gap-3 w-full">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[12px] font-semibold text-primary">
@@ -248,14 +249,43 @@ export default function GameScreenPage() {
                   00:{String(secondsLeft).padStart(2, "0")}
                 </span>
               </div>
-              <button
-                onClick={() => canvasRef.current?.clear()}
-                className="flex items-center gap-1.5 text-[12.5px] text-muted transition-colors hover:text-white"
-              >
-                <Eraser size={14} /> Clear
-              </button>
+              <div className="flex items-center gap-4">
+                {/* Tool Selector */}
+                <div className="flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] p-1">
+                  <button
+                    onClick={() => setActiveTool("pencil")}
+                    className={`rounded-[8px] px-3.5 py-1.5 text-[12.5px] font-medium transition-colors ${
+                      activeTool === "pencil"
+                        ? "bg-primary text-white"
+                        : "text-muted hover:text-white hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    Draw
+                  </button>
+                  <button
+                    onClick={() => setActiveTool("eraser")}
+                    className={`rounded-[8px] px-3.5 py-1.5 text-[12.5px] font-medium transition-colors ${
+                      activeTool === "eraser"
+                        ? "bg-primary text-white"
+                        : "text-muted hover:text-white hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    Eraser
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => {
+                    canvasRef.current?.clear();
+                    setActiveTool("pencil"); // Reset to pencil tool on clear
+                  }}
+                  className="flex items-center gap-1.5 text-[12.5px] text-muted transition-colors hover:text-white"
+                >
+                  <Eraser size={14} /> Clear
+                </button>
+              </div>
             </div>
-            <div className="mx-auto flex h-[320px] w-[320px] max-w-full items-center justify-center sm:h-[480px] sm:w-[720px]">
+            <div className="mx-auto flex w-full max-w-[550px] items-center justify-center aspect-square mt-2">
               <GameCanvas
                 ref={canvasRef}
                 onConfidenceChange={setInkConfidence}
@@ -263,6 +293,7 @@ export default function GameScreenPage() {
                 socketRef={wsRef}
                 roomId={roomCode}
                 clearSignal={currentRound}
+                activeTool={activeTool}
               />
             </div>
           </div>
