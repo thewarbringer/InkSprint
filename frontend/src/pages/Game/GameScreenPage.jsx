@@ -10,6 +10,7 @@ import { GAME_OPPONENTS } from "../../constants/appData.js";
 import useQuickDrawPrediction from "../../hooks/useQuickDrawPrediction.js";
 import { isPredictionMatch } from "../../utils/predictions.js";
 
+const ROUND_SECONDS = 45;
 
 export default function GameScreenPage() {
   const { roomCode } = useParams();
