@@ -12,6 +12,9 @@ const buildUserResponse = (user) => ({
   totalGames: user.totalGames,
   rating: user.rating,
   profilePicture: user.profilePicture || null,
+=======
+  gamesHistory: user.gamesHistory || [],
+>>>>>>> c27c185caac0c93b4d0e49985f2f6109770a273d
   createdAt: user.createdAt,
 });
 

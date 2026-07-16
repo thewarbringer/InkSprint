@@ -18,16 +18,25 @@ export default function PredictionPanel({ word, confidence, predictedWord, topPr
         <span className={isTargetInTopThree ? "text-emerald-300" : "text-amber-300"}>{statusMessage}</span>
       </div>
 
+      <div className="mb-4 rounded-xl border border-white/[0.08] bg-black/10 px-3 py-2 text-sm">
+        <div className="flex items-center justify-between text-[12px] text-muted">
+          <span>Current confidence</span>
+          <span className="font-mono text-cyan-300">{Math.round(confidence)}%</span>
+        </div>
+        <div className="mt-1 text-white/80">
+          {predictedWord ? `Best guess: ${predictedWord}` : "Draw something to see predictions"}
+        </div>
+      </div>
+
       <div className="mt-4">
-        
-        <div className="hidden mb-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-muted">
+        <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-muted">
           Top 3 predictions
         </div>
 
-        <div className="flex flex-wrap gap-2 hidden">
+        <div className="flex flex-wrap gap-2">
           {topThreePredictions.length > 0 ? (
             topThreePredictions.map((item) => (
-              <div key={item.label} className="flex min-w-[110px] items-center justify-between rounded-xl bg-black/10 px-3 py-2 text-sm">
+              <div key={item.label} className="flex min-w-[120px] items-center justify-between rounded-xl bg-black/10 px-3 py-2 text-sm">
                 <span className="mr-2 capitalize text-white/90">{item.label}</span>
                 <span className="font-mono text-cyan-300">{Math.round(item.confidence)}%</span>
               </div>

@@ -76,7 +76,8 @@ export default function GameScreenPage() {
     roundStartedAt,
   });
   const confidence = modelReady ? modelConfidence : inkConfidence;
-  const isHeld = players.some((playerEntry) => playerEntry.username === username && playerEntry.hold);
+  // Hold-based locking is temporarily disabled until it is explicitly turned back on.
+  const isHeld = false;
 
   useEffect(() => {
     if (!roomCode) return;
@@ -289,7 +290,7 @@ export default function GameScreenPage() {
               <GameCanvas
                 ref={canvasRef}
                 onConfidenceChange={setInkConfidence}
-                locked={roundEnded.current || isHeld}
+                locked={roundEnded.current}
                 socketRef={wsRef}
                 roomId={roomCode}
                 clearSignal={currentRound}
