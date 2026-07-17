@@ -2,6 +2,7 @@ const ActiveGame = require('../models/ActiveGame');
 const EndedGame = require('../models/EndedGame');
 const { broadcastToRoom } = require('../wsServer');
 const categories = require('../categories.json');
+const { canStartGame, MIN_PLAYERS_TO_START, MAX_PLAYERS_PER_ROOM, isValidRoomCapacity } = require('../utils/gameValidation');
 
 const ALPHANUMERIC_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
@@ -9,6 +10,10 @@ const getRandomWord = () => {
   const index = Math.floor(Math.random() * categories.length);
   return categories[index] || '';
 };
+
+const User = require('../models/User');
+const { updateUserGameHistory } = require('../utils/gameHistory');
+const { buildRankedResults } = require('../utils/gameResults');
 
 const generateRoomId = () => {
   let id = '';
@@ -41,6 +46,10 @@ exports.createGame = async (req, res) => {
 
   if (!roomName || !maxPlayers || !rounds) {
     return res.status(400).json({ message: 'roomName, maxPlayers, and rounds are required.' });
+  }
+
+  if (!isValidRoomCapacity(maxPlayers)) {
+    return res.status(400).json({ message: `Room capacity must be between ${MIN_PLAYERS_TO_START} and ${MAX_PLAYERS_PER_ROOM} players.` });
   }
 
   try {
@@ -163,6 +172,10 @@ exports.startGame = async (req, res) => {
       return res.status(403).json({ message: 'Only the room host can start the game.' });
     }
 
+    if (!canStartGame(game)) {
+      return res.status(400).json({ message: `At least ${MIN_PLAYERS_TO_START} players are required to start the game.` });
+    }
+
     game.state = 'started';
     game.roundsDone = 0;
     game.timerSeconds = 45;
@@ -232,5 +245,54 @@ exports.toggleReadyState = async (req, res) => {
   } catch (error) {
     console.error('Toggle ready state error:', error);
     return res.status(500).json({ message: error.message || 'Unable to update ready state.' });
+  }
+};
+
+// End / archive an active game immediately (callable from client)
+exports.endGame = async (req, res) => {
+  const { roomId } = req.params;
+
+  if (!roomId) return res.status(400).json({ message: 'roomId is required.' });
+
+  try {
+    const game = await ActiveGame.findOne({ roomId });
+    if (!game) return res.status(404).json({ message: 'Game not found.' });
+
+    const rankedResults = buildRankedResults(game.players || []);
+    const topIsDraw = rankedResults.length > 0 && rankedResults[0]?.isDraw;
+    const winnerUsername = topIsDraw ? null : (rankedResults[0]?.username || null);
+
+    await EndedGame.findOneAndUpdate(
+      { roomId: game.roomId },
+      {
+        roomId: game.roomId,
+        roomName: game.roomName,
+        maxPlayers: game.maxPlayers,
+        rounds: game.rounds,
+        privateRoom: game.privateRoom,
+        state: 'ended',
+        winner: winnerUsername,
+        players: (game.players || []).map((player) => ({
+          username: player.username,
+          scores: player.scores || 0,
+          hold: Boolean(player.hold),
+        })),
+      },
+      { upsert: true, new: true }
+    );
+
+    await updateUserGameHistory(User, game, winnerUsername, rankedResults);
+    await ActiveGame.deleteOne({ _id: game._id });
+
+    broadcastToRoom(roomId, {
+      type: 'gameOver',
+      roomId,
+      state: 'over',
+    });
+
+    return res.status(200).json({ message: 'Game ended and archived.' });
+  } catch (error) {
+    console.error('End game error:', error);
+    return res.status(500).json({ message: error.message || 'Unable to end game.' });
   }
 };

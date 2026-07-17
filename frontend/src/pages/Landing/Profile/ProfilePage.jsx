@@ -1,13 +1,11 @@
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { /* Award */ } from "lucide-react";
+import { Target, Flame, Trophy, Heart, Sparkles } from "lucide-react";
 import AppShell from "../../../components/layout/AppShell.jsx";
 import { Avatar, ProgressBar, Badge, StatCard } from "../../../components/common/UIAtoms.jsx";
-import { staggerContainer, fadeInUp } from "../../../animations/variants.js";
-import { CURRENT_USER /*, PROFILE_BADGES */ } from "../../../constants/appData.js";
+import { CURRENT_USER } from "../../../constants/appData.js";
 import { fetchCurrentUser, getCurrentUser, setUserSession } from "../../../utils/auth.js";
-import { Target, Flame, Trophy, Heart } from "lucide-react";
 
 export default function ProfilePage() {
   const [currentUser, setCurrentUser] = useState(() => getCurrentUser() || CURRENT_USER);
@@ -20,7 +18,7 @@ export default function ProfilePage() {
       .map((game) => ({
         roomName: game.roomName || game.roomId || "Private room",
         roomId: game.roomId || "",
-        result: game.result === "win" ? "win" : "loss",
+        result: game.result === "win" ? "win" : game.result === "draw" ? "draw" : "loss",
         playedAt: game.playedAt,
       }));
   }, [currentUser.gamesHistory]);
@@ -61,10 +59,10 @@ export default function ProfilePage() {
               {currentUser.username}
             </div>
             <Badge tone="success">{userTag}</Badge>
+            {/* Level/XP removed */}
             <p className="mx-auto mt-4 max-w-[240px] text-[13px] leading-relaxed text-muted">
               Speed-drawing enthusiast. Favorite category: {currentUser.favoriteCategory || CURRENT_USER.favoriteCategory}.
             </p>
-            {/* Level and progress removed per request */}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -84,8 +82,8 @@ export default function ProfilePage() {
               {matchHistory.length > 0 ? matchHistory.map((m, i) => (
                 <div key={`${m.roomName}-${i}`} className="flex items-center justify-between py-3">
                   <div className="flex items-center gap-3">
-                    <Badge tone={m.result === "win" ? "success" : "danger"}>
-                      {m.result === "win" ? "WIN" : "LOSS"}
+                    <Badge tone={m.result === "win" ? "success" : m.result === "draw" ? "warning" : "danger"}>
+                      {m.result === "win" ? "WIN" : m.result === "draw" ? "DRAW" : "LOSS"}
                     </Badge>
                     <div className="flex flex-col">
                       <span className="font-mono text-[13.5px]">{m.roomName}</span>

@@ -27,7 +27,7 @@ export default function ProfilePage() {
           setUser(fetched);
           try {
             setUserSession({ user: fetched, token }, true);
-          } catch (e) {}
+          } catch (e) { }
         }
       } catch (err) {
         console.error('Failed to fetch current user for profile', err);
@@ -46,7 +46,7 @@ export default function ProfilePage() {
       .map((game) => ({
         roomName: game.roomName || game.roomId || "Private room",
         roomId: game.roomId || "",
-        result: game.result === "win" ? "win" : "loss",
+        result: game.result === "win" ? "win" : game.result === "draw" ? "draw" : "loss",
         playedAt: game.playedAt,
       }));
   }, [user.gamesHistory]);
@@ -88,8 +88,8 @@ export default function ProfilePage() {
               {matchHistory.length > 0 ? matchHistory.map((m, i) => (
                 <div key={`${m.roomName}-${i}`} className="flex items-center justify-between py-3">
                   <div className="flex items-center gap-3">
-                    <Badge tone={m.result === "win" ? "success" : "danger"}>
-                      {m.result === "win" ? "WIN" : "LOSS"}
+                    <Badge tone={m.result === "win" ? "success" : m.result === "draw" ? "warning" : "danger"}>
+                      {m.result === "win" ? "WIN" : m.result === "draw" ? "DRAW" : "LOSS"}
                     </Badge>
                     <div className="flex flex-col">
                       <span className="font-mono text-[13.5px]">{m.roomName}</span>

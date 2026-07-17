@@ -1,9 +1,7 @@
 export const CURRENT_USER = {
   username: "quickpen",
   tag: "Diamond II",
-  level: 34,
-  xp: 26980,
-  xpToNext: 30000,
+  // level/xp removed
   avatarGrad: "from-secondary to-primary",
   winRate: 69,
   gamesPlayed: 842,
@@ -18,10 +16,10 @@ export const DASHBOARD_STATS = [
 ];
 
 export const RECENT_MATCHES = [
-  { word: "ROCKET", result: "win", xp: "+120 XP", time: "0.8s", ago: "12m ago" },
-  { word: "OCTOPUS", result: "win", xp: "+95 XP", time: "1.3s", ago: "40m ago" },
-  { word: "MOUNTAIN", result: "loss", xp: "+10 XP", time: "—", ago: "1h ago" },
-  { word: "LIGHTNING", result: "win", xp: "+140 XP", time: "0.6s", ago: "2h ago" },
+  { word: "ROCKET", result: "win", time: "0.8s", ago: "12m ago" },
+  { word: "OCTOPUS", result: "win", time: "1.3s", ago: "40m ago" },
+  { word: "MOUNTAIN", result: "loss", time: "—", ago: "1h ago" },
+  { word: "LIGHTNING", result: "win", time: "0.6s", ago: "2h ago" },
 ];
 
 export const FRIENDS = [
@@ -34,7 +32,7 @@ export const DAILY_CHALLENGE = {
   title: "Win 3 rounds in under 1 second",
   progress: 1,
   target: 3,
-  reward: "500 XP + Speedster badge",
+  reward: "Speedster badge",
 };
 
 export const PUBLIC_ROOMS = [
@@ -68,8 +66,7 @@ export const RESULTS_DATA = {
   isYou: true,
   word: "ROCKET",
   recognitionTime: "0.8s",
-  xpGained: 140,
-  newXpTotal: 27120,
+  // xp removed
   achievementsUnlocked: [{ title: "Speedster", desc: "Won a round in under 1 second" }],
   standings: [
     { rank: 1, name: "quickpen", score: 4, isYou: true },
@@ -97,14 +94,14 @@ export const PROFILE_HISTORY = [
 ];
 
 export const LEADERBOARD_FULL = [
-  { rank: 1, name: "nova.exe", tier: "Diamond III", xp: "28,410 XP", wr: "72% WR", grad: "from-warning to-danger" },
-  { rank: 2, name: "quickpen", tier: "Diamond II", xp: "26,980 XP", wr: "69% WR", grad: "from-secondary to-primary" },
-  { rank: 3, name: "sketchbolt", tier: "Diamond II", xp: "25,120 XP", wr: "65% WR", grad: "from-accent to-success" },
-  { rank: 4, name: "inkling_ai", tier: "Platinum I", xp: "23,760 XP", wr: "63% WR", grad: "from-danger to-accent" },
-  { rank: 5, name: "rapidraw", tier: "Platinum I", xp: "22,310 XP", wr: "61% WR", grad: "from-success to-secondary" },
-  { rank: 6, name: "linework", tier: "Platinum II", xp: "20,905 XP", wr: "58% WR", grad: "from-primary to-warning" },
-  { rank: 7, name: "doodlefast", tier: "Gold I", xp: "19,340 XP", wr: "56% WR", grad: "from-secondary to-accent" },
-  { rank: 8, name: "pixelpaws", tier: "Gold I", xp: "18,220 XP", wr: "54% WR", grad: "from-danger to-success" },
+  { rank: 1, name: "nova.exe", tier: "Diamond III", wr: "72% WR", grad: "from-warning to-danger" },
+  { rank: 2, name: "quickpen", tier: "Diamond II", wr: "69% WR", grad: "from-secondary to-primary" },
+  { rank: 3, name: "sketchbolt", tier: "Diamond II", wr: "65% WR", grad: "from-accent to-success" },
+  { rank: 4, name: "inkling_ai", tier: "Platinum I", wr: "63% WR", grad: "from-danger to-accent" },
+  { rank: 5, name: "rapidraw", tier: "Platinum I", wr: "61% WR", grad: "from-success to-secondary" },
+  { rank: 6, name: "linework", tier: "Platinum II", wr: "58% WR", grad: "from-primary to-warning" },
+  { rank: 7, name: "doodlefast", tier: "Gold I", wr: "56% WR", grad: "from-secondary to-accent" },
+  { rank: 8, name: "pixelpaws", tier: "Gold I", wr: "54% WR", grad: "from-danger to-success" },
 ];
 
 export const SIDEBAR_LINKS = [

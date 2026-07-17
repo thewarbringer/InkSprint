@@ -9,6 +9,7 @@ import { Avatar, ProgressBar } from "../../components/common/UIAtoms.jsx";
 import { GAME_OPPONENTS } from "../../constants/appData.js";
 import useQuickDrawPrediction from "../../hooks/useQuickDrawPrediction.js";
 import { isPredictionMatch } from "../../utils/predictions.js";
+import { getUserToken, getCurrentUser } from "../../utils/auth.js";
 
 const ROUND_SECONDS = 45;
 
@@ -23,9 +24,12 @@ export default function GameScreenPage() {
   const [inkConfidence, setInkConfidence] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(ROUND_SECONDS);
   const [roundLocked, setRoundLocked] = useState(false);
+  const [isHeld, setIsHeld] = useState(false);
   const [opponents, setOpponents] = useState(
     GAME_OPPONENTS.map((o) => ({ ...o, confidence: 0 }))
   );
+  const [chatMessages, setChatMessages] = useState([]);
+  const [players, setPlayers] = useState([]);
   const roundEnded = useRef(false);
 
   // Real model prediction — only takes over once a trained model is found
@@ -44,7 +48,32 @@ export default function GameScreenPage() {
   useEffect(() => {
     if (!roomCode) return;
 
-    const ws = new WebSocket(`${import.meta.env.VITE_API_BASE_URL?.replace(/^http/, 'ws').replace(/^https/, 'wss') || 'ws://localhost:3000'}?roomId=${encodeURIComponent(roomCode)}&username=${encodeURIComponent('player')}`);
+    // Check if this is a new room or same room
+    const storedRoomCode = sessionStorage.getItem('gameRoomCode');
+    const isNewRoom = storedRoomCode !== roomCode;
+
+    if (isNewRoom) {
+      // New game - clear everything
+      setChatMessages([]);
+      setPlayers([]);
+      sessionStorage.setItem('gameRoomCode', roomCode);
+      sessionStorage.removeItem('gameChatMessages');
+    } else {
+      // Same room after reload - restore chat from sessionStorage
+      const stored = sessionStorage.getItem('gameChatMessages');
+      if (stored) {
+        try {
+          setChatMessages(JSON.parse(stored));
+        } catch (e) {
+          setChatMessages([]);
+        }
+      }
+    }
+
+    const currentUser = getCurrentUser();
+    const username = currentUser?.username || 'player';
+
+    const ws = new WebSocket(`${import.meta.env.VITE_API_BASE_URL?.replace(/^http/, 'ws').replace(/^https/, 'wss') || 'ws://localhost:3000'}?roomId=${encodeURIComponent(roomCode)}&username=${encodeURIComponent(username)}`);
     wsRef.current = ws;
 
     ws.onmessage = (event) => {
@@ -52,6 +81,21 @@ export default function GameScreenPage() {
         const data = JSON.parse(event.data);
         if ((data.type === 'start' || data.type === 'roundAdvance') && data.word) {
           setWord(data.word);
+        }
+
+        if (data.type === 'playerLeft' && data.username) {
+          // Remove player from players list
+          setPlayers((prev) => prev.filter((playerEntry) => playerEntry.username !== data.username));
+        }
+
+        if (data.type === 'chat' && data.message) {
+          setChatMessages((prev) => [...prev, data.message]);
+        }
+
+        if (data.type === 'roundSolved' && data.player) {
+          if (Array.isArray(data.players)) {
+            setPlayers(data.players);
+          }
         }
       } catch (error) {
         console.error(error);
@@ -62,7 +106,12 @@ export default function GameScreenPage() {
       ws.close();
       wsRef.current = null;
     };
-  }, [roomCode]);
+  }, [roomCode, navigate]);
+
+  // Persist chat messages to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('gameChatMessages', JSON.stringify(chatMessages));
+  }, [chatMessages]);
 
   useEffect(() => {
     const fetchGameState = async () => {
@@ -115,6 +164,10 @@ export default function GameScreenPage() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    setIsHeld(false);
+  }, [word]);
+
   // Win check
   useEffect(() => {
     // Only proceed when we have a target word
@@ -133,6 +186,7 @@ export default function GameScreenPage() {
     const topThreeIncludesTarget = perPrediction.some((p) => p.match);
 
     if (topThreeIncludesTarget && !roundEnded.current) {
+      setIsHeld(true);
       roundEnded.current = true;
       alert("the user has successfully drawn");
       setRoundLocked(true);
@@ -154,7 +208,7 @@ export default function GameScreenPage() {
               confidence={confidence}
               predictedWord={predictedWord}
               topPredictions={topPredictions}
-              isHeld={false}
+              isHeld={isHeld}
             />
           </div>
 
@@ -171,7 +225,7 @@ export default function GameScreenPage() {
               </button>
             </div>
             <div className="flex-1">
-              <GameCanvas ref={canvasRef} onConfidenceChange={setInkConfidence} locked={roundLocked} />
+              <GameCanvas ref={canvasRef} onConfidenceChange={setInkConfidence} locked={roundLocked || isHeld} />
             </div>
           </div>
         </div>
@@ -209,8 +263,34 @@ export default function GameScreenPage() {
             </div>
           </div>
 
-          
-          <Button variant="ghost" className="justify-center" onClick={() => navigate(`/dashboard`)}>
+          {chatMessages.length > 0 && (
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.05] p-5">
+              <h3 className="mb-3 text-[14px] font-semibold">Activity</h3>
+              <div className="flex max-h-[200px] flex-col gap-2 overflow-y-auto">
+                {chatMessages.map((msg, i) => (
+                  <div key={i} className="text-[12px]">
+                    <span className={`font-semibold ${msg.system ? 'text-muted' : 'text-secondary'}`}>{msg.name}: </span>
+                    <span className={msg.system ? 'text-white/70' : 'text-white/[0.85]'}>{msg.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <Button
+            variant="ghost"
+            className="justify-center"
+            onClick={() => {
+              // Close WebSocket to trigger leave broadcast to other players
+              if (wsRef.current) {
+                wsRef.current.close();
+              }
+              // Clear session storage for this game
+              sessionStorage.removeItem('gameRoomCode');
+              sessionStorage.removeItem('gameChatMessages');
+              navigate('/dashboard', { state: { leftGame: true, roomId: roomCode } });
+            }}
+          >
             Leave sprint
           </Button>
         </div>

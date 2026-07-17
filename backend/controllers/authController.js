@@ -102,18 +102,26 @@ exports.me = async (req, res) => {
 
 exports.googleSignin = async (req, res) => {
   try {
-    const { token } = req.body;
+    // Accept several common field names sent by different clients
+    const token = req.body.token || req.body.credential || req.body.id_token;
 
     if (!token) {
+      console.error('Google signin called with empty body:', req.body);
       return res.status(400).json({
-        message: "Google token is required.",
+        message: "Google token is required. Provide 'token', 'credential', or 'id_token' in the request body.",
       });
     }
 
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
+    let ticket;
+    try {
+      ticket = await client.verifyIdToken({
+        idToken: token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+    } catch (verifyErr) {
+      console.error('Failed to verify Google ID token:', verifyErr);
+      return res.status(401).json({ message: 'Invalid or expired Google token.' });
+    }
 
     const payload = ticket.getPayload();
 

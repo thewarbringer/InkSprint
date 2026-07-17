@@ -17,7 +17,7 @@ export default function PredictionPanel({ word, confidence, predictedWord, topPr
       <div className="mb-4 rounded-xl border border-white/[0.08] bg-black/10 px-3 py-2 text-sm">
         <span className={isTargetInTopThree ? "text-emerald-300" : "text-amber-300"}>{statusMessage}</span>
       </div>
-
+      {/*
       <div className="mb-4 rounded-xl border border-white/[0.08] bg-black/10 px-3 py-2 text-sm">
         <div className="flex items-center justify-between text-[12px] text-muted">
           <span>Current confidence</span>
@@ -48,6 +48,7 @@ export default function PredictionPanel({ word, confidence, predictedWord, topPr
           )}
         </div>
       </div>
+      */}
     </div>
   );
 }

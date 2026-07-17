@@ -32,7 +32,7 @@ function getCanvasSize() {
     : { width: LARGE_CANVAS_WIDTH, height: LARGE_CANVAS_HEIGHT };
 }
 
-const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, socketRef, roomId, onRemoteStroke, clearSignal, activeTool = "pencil" }, ref) {
+const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, socketRef, roomId, onRemoteStroke, clearSignal, activeTool = "pencil", eraserSize = 36 }, ref) {
   const canvasRef = useRef(null);
   const isDrawing = useRef(false);
   const activePointerId = useRef(null);
@@ -112,7 +112,7 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       ctx.strokeStyle = activeTool === "eraser" ? "#ffffff" : "#000000";
-      ctx.lineWidth = activeTool === "eraser" ? 36 : 18;
+      ctx.lineWidth = activeTool === "eraser" ? eraserSize : 18;
       ctx.shadowColor = "rgba(0, 0, 0, 0.15)";
       ctx.shadowBlur = 0;
     }
@@ -181,7 +181,7 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
     const prev = lastPoint.current;
 
     ctx.strokeStyle = activeTool === "eraser" ? "#ffffff" : "#000000";
-    ctx.lineWidth = activeTool === "eraser" ? 36 : 18;
+    ctx.lineWidth = activeTool === "eraser" ? eraserSize : 18;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.beginPath();
@@ -197,7 +197,7 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
       from: prev,
       to: point,
       color: activeTool === "eraser" ? "#ffffff" : "#000000",
-      width: activeTool === "eraser" ? 36 : 18,
+      width: activeTool === "eraser" ? eraserSize : 18,
     };
 
     strokesRef.current.push(stroke);
@@ -253,7 +253,7 @@ const GameCanvas = forwardRef(function GameCanvas({ onConfidenceChange, locked, 
   const cursorStyle = locked
     ? "not-allowed"
     : activeTool === "eraser"
-    ? "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'><circle cx='18' cy='18' r='17' fill='none' stroke='black' stroke-width='1.5'/><circle cx='18' cy='18' r='17' fill='none' stroke='white' stroke-width='0.5'/></svg>\") 18 18, pointer"
+    ? `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='${eraserSize}' height='${eraserSize}' viewBox='0 0 ${eraserSize} ${eraserSize}'><circle cx='${eraserSize / 2}' cy='${eraserSize / 2}' r='${eraserSize / 2 - 1}' fill='none' stroke='black' stroke-width='1.5'/><circle cx='${eraserSize / 2}' cy='${eraserSize / 2}' r='${eraserSize / 2 - 1}' fill='none' stroke='white' stroke-width='0.5'/></svg>") ${eraserSize / 2} ${eraserSize / 2}, pointer`
     : "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18'><circle cx='9' cy='9' r='8' fill='black' stroke='white' stroke-width='1.5'/></svg>\") 9 9, crosshair";
 
   return (

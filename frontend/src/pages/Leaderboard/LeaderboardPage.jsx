@@ -38,7 +38,6 @@ export default function LeaderboardPage() {
             <Avatar name={p.name} gradient={p.grad} size={i === 1 ? 56 : 46} />
             <div className="mt-2 text-[13.5px] font-semibold">{p.name}</div>
             <div className="text-[11px] text-muted">{p.tier}</div>
-            <div className="mt-1 font-mono text-[12.5px] text-secondary">{p.xp}</div>
           </motion.div>
         ))}
       </div>
@@ -86,7 +85,6 @@ export default function LeaderboardPage() {
                 <div className="text-[11.5px] text-muted">{p.tier}</div>
               </div>
             </div>
-            <div className="text-right font-mono text-[13px]">{p.xp}</div>
             <div className="text-right text-[12.5px] text-success">{p.wr}</div>
           </div>
         ))}

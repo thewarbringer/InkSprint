@@ -7,8 +7,13 @@ const connectDB = async () => {
         console.log(`MongoDB connected: ${conn.connection.host}`);
         return conn;
     } catch (error) {
-        console.log(`MongoDB Connection Error: ${error}`);
-        process.exit(1);
+        console.log(`MongoDB Connection Error: ${error.message}`);
+        // Don't exit - allow server to start even if DB is not available
+        // Try to reconnect every 5 seconds
+        setTimeout(() => {
+            console.log('Attempting to reconnect to MongoDB...');
+            connectDB();
+        }, 5000);
     }
 }
 

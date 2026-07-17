@@ -48,6 +48,7 @@ test('updateUserGameHistory stores a history entry for case-variant usernames', 
     username: 'Alice',
     gamesHistory: [],
     totalGames: 0,
+    // xp fields removed
     save: async function () {
       this.saved = true;
     },
@@ -71,4 +72,31 @@ test('updateUserGameHistory stores a history entry for case-variant usernames', 
   assert.equal(user.gamesHistory.length, 1);
   assert.equal(user.totalGames, 1);
   assert.equal(user.gamesHistory[0].result, 'win');
+  // XP removed from history entries; ensure no xp fields are present
+  assert.equal(user.gamesHistory[0].xpGain, undefined);
+  
+});
+
+test('buildGameHistoryEntry marks tied first-place players as a draw', () => {
+  const game = {
+    roomId: 'room-draw',
+    roomName: 'Draw Match',
+    players: [
+      { username: 'alice', scores: 10 },
+      { username: 'bob', scores: 10 },
+    ],
+  };
+
+  const rankedResults = [
+    { username: 'alice', scores: 10, placement: 1, isDraw: true },
+    { username: 'bob', scores: 10, placement: 1, isDraw: true },
+  ];
+
+  const aliceEntry = buildGameHistoryEntry(game, null, 'alice', rankedResults);
+  const bobEntry = buildGameHistoryEntry(game, null, 'bob', rankedResults);
+
+  assert.equal(aliceEntry.result, 'draw');
+  assert.equal(bobEntry.result, 'draw');
+  assert.equal(aliceEntry.score, 10);
+  assert.equal(bobEntry.score, 10);
 });

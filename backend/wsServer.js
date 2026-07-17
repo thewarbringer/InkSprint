@@ -1,7 +1,22 @@
 const WebSocket = require('ws');
 const ActiveGame = require('./models/ActiveGame');
+const User = require('./models/User');
 
 const rooms = new Map();
+const PLAYER_STROKE_COLORS = ['#00D4FF', '#ff6b6b', '#22c55e', '#f59e0b', '#8b5cf6', '#f472b6'];
+
+function getStrokeColorForPlayer(username) {
+  if (!username) return PLAYER_STROKE_COLORS[0];
+
+  let hash = 0;
+  for (let index = 0; index < username.length; index += 1) {
+    hash = (hash << 5) - hash + username.charCodeAt(index);
+    hash |= 0;
+  }
+
+  const safeIndex = Math.abs(hash) % PLAYER_STROKE_COLORS.length;
+  return PLAYER_STROKE_COLORS[safeIndex];
+}
 
 function initWebsocket(server) {
   const wss = new WebSocket.Server({ server });
@@ -25,6 +40,8 @@ function initWebsocket(server) {
       }
       rooms.get(roomId).add(socket);
 
+
+
       socket.on('message', async (message) => {
         let data;
         try {
@@ -47,9 +64,15 @@ function initWebsocket(server) {
         }
 
         if (data.type === 'drawStroke' && data.stroke) {
+          const strokeColor = data.stroke?.color && data.stroke.color !== '#000000' ? data.stroke.color : getStrokeColorForPlayer(username);
+          const broadcastStroke = {
+            ...data.stroke,
+            color: strokeColor,
+          };
+
           broadcastToRoom(roomId, JSON.stringify({
             type: 'drawStroke',
-            stroke: data.stroke,
+            stroke: broadcastStroke,
             username,
           }));
         }
@@ -90,13 +113,63 @@ function initWebsocket(server) {
         }
       });
 
-      socket.on('close', () => {
+      socket.on('close', async () => {
         const room = rooms.get(roomId);
         if (room) {
           room.delete(socket);
           if (room.size === 0) {
             rooms.delete(roomId);
           }
+        }
+
+        // Wait a grace period to allow reconnection (page navigation, reload)
+        await new Promise((resolve) => { setTimeout(resolve, 4000); });
+
+        // Check if the same user has reconnected to the room
+        const currentRoom = rooms.get(roomId);
+        if (currentRoom) {
+          const reconnected = Array.from(currentRoom).some(
+            (client) => client.username === username && client.readyState === WebSocket.OPEN
+          );
+          if (reconnected) return;
+        }
+
+        try {
+          const game = await ActiveGame.findOne({ roomId });
+          if (!game) return;
+
+          // Only process leave for started games — in 'waiting' state,
+          // the player may just be navigating between pages
+          if (game.state !== 'started') return;
+
+          // Remove user from players list
+          game.players = game.players.filter((p) => p.username !== username);
+          await game.save();
+
+          // Broadcast to other players that this player has left
+          broadcastToRoom(roomId, {
+            type: 'playerLeft',
+            roomId,
+            username,
+            players: game.players.map((p) => ({
+              username: p.username,
+              scores: p.scores || 0,
+              hold: Boolean(p.hold),
+            })),
+          });
+
+          // Broadcast system message to all other players in the chat
+          broadcastToRoom(roomId, {
+            type: 'chat',
+            message: {
+              name: 'System',
+              text: `${username} has left the game.`,
+              timestamp: Date.now(),
+              system: true,
+            },
+          });
+        } catch (error) {
+          console.error('Error handling socket close for room:', roomId, error);
         }
       });
     } catch (error) {

@@ -27,7 +27,7 @@ export default function DashboardPage() {
       .map((game) => ({
         roomName: game.roomName || game.roomId || "Private room",
         roomId: game.roomId || "",
-        result: game.result === "win" ? "win" : "loss",
+        result: game.result === "win" ? "win" : game.result === "draw" ? "draw" : "loss",
         score: game.score ?? 0,
         playedAt: game.playedAt,
       }));
@@ -35,7 +35,7 @@ export default function DashboardPage() {
 
   const stats = [
     // Games played derived from gamesHistory when available
-    { label: "Games played", value: String(Array.isArray(user.gamesHistory) ? user.gamesHistory.length : (user.gamesPlayed || user.totalGames || 0)), icon: "Target" },
+    { label: "Games played", value: String(/*Array.isArray(user.gamesHistory) ?*/ user.gamesHistory.length /* : (user.gamesPlayed || user.totalGames || 0)*/), icon: "Target" },
     // Win rate: use user.winRate if provided otherwise compute from gamesHistory
     (() => {
       const gamesPlayed = Array.isArray(user.gamesHistory) ? user.gamesHistory.length : (user.gamesPlayed || user.totalGames || 0);
@@ -122,8 +122,8 @@ export default function DashboardPage() {
               {recentGames.length > 0 ? recentGames.map((m, i) => (
                 <div key={`${m.roomName}-${i}`} className="flex items-center justify-between py-3">
                   <div className="flex items-center gap-3">
-                    <Badge tone={m.result === "win" ? "success" : "danger"}>
-                      {m.result === "win" ? "WIN" : "LOSS"}
+                    <Badge tone={m.result === "win" ? "success" : m.result === "draw" ? "warning" : "danger"}>
+                      {m.result === "win" ? "WIN" : m.result === "draw" ? "DRAW" : "LOSS"}
                     </Badge>
                     <div className="flex flex-col">
                       <span className="font-mono text-[13.5px]">{m.roomName}</span>
@@ -152,14 +152,9 @@ export default function DashboardPage() {
               <Avatar name={user.username} gradient={user.avatarGrad || 'from-secondary to-primary'} size={48} />
               <div>
                 <div className="text-[15px] font-semibold">{user.username}</div>
-                <div className="text-[12.5px] text-muted">{userTag} · Lv. {user.level || 1}</div>
+                <div className="text-[12.5px] text-muted">{userTag}</div>
               </div>
             </div>
-            <div className="mb-1.5 flex justify-between text-[12px] text-muted">
-              <span>XP</span>
-              <span className="font-mono">{(user.xp || 0).toLocaleString()} / {(user.xpToNext || 30000).toLocaleString()}</span>
-            </div>
-            <ProgressBar value={user.xp || 0} max={user.xpToNext || 30000} />
           </div>
 
           {/* Daily challenge */}
@@ -184,9 +179,8 @@ export default function DashboardPage() {
                   <div className="relative">
                     <Avatar name={f.name} size={32} />
                     <span
-                      className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-bg ${
-                        f.status === "online" ? "bg-success" : "bg-white/[0.2]"
-                      }`}
+                      className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-bg ${f.status === "online" ? "bg-success" : "bg-white/[0.2]"
+                        }`}
                     />
                   </div>
                   <div>

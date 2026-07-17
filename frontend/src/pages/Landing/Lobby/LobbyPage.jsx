@@ -8,6 +8,7 @@ import { Avatar, Badge } from "../../../components/common/UIAtoms.jsx";
 import { fetchCurrentUser, getCurrentUser, getUserToken, setUserSession } from "../../../utils/auth.js";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const MIN_PLAYERS_TO_START = 2;
 
 export default function LobbyPage() {
   const { roomCode } = useParams();
@@ -29,6 +30,12 @@ export default function LobbyPage() {
 
   const you = players.find((p) => p.isYou);
   const allReady = players.length > 0 && players.every((p) => p.ready);
+  const canStart = players.length >= MIN_PLAYERS_TO_START && allReady;
+  const startError = players.length < MIN_PLAYERS_TO_START
+    ? `At least ${MIN_PLAYERS_TO_START} players are required to start the game.`
+    : !allReady
+      ? 'All players must be ready before the game can start.'
+      : '';
 
   async function toggleReady() {
     if (!you) return;
@@ -183,6 +190,11 @@ export default function LobbyPage() {
         return;
       }
 
+      if (data.type === 'playerLeft' && data.username) {
+        setPlayers((prev) => prev.filter((player) => player.name !== data.username));
+        return;
+      }
+
       if (data.type === 'chat' && data.message) {
         setMessages((prev) => [...prev, data.message]);
       }
@@ -208,6 +220,11 @@ export default function LobbyPage() {
   async function startGame() {
     if (!token) {
       setLoadError('You must be logged in to start the game.');
+      return;
+    }
+
+    if (players.length < MIN_PLAYERS_TO_START) {
+      setLoadError(`At least ${MIN_PLAYERS_TO_START} players are required to start the game.`);
       return;
     }
 
@@ -282,20 +299,27 @@ export default function LobbyPage() {
             )}
           </motion.div>
 
-          <div className="mt-6 flex gap-3">
-            <Button variant={you?.ready ? "ghost" : "primary"} onClick={toggleReady} className="flex-1 justify-center">
-              {you?.ready ? "Not ready" : "I'm ready"}
-            </Button>
-            {you?.isHost && (
-              <Button
-                variant="primary"
-                disabled={!allReady}
-                onClick={startGame}
-                className="flex-1 justify-center disabled:opacity-40"
-              >
-                Start game
+          <div className="mt-6 flex flex-col gap-3">
+            {startError ? (
+              <div className="rounded-[10px] border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger">
+                {startError}
+              </div>
+            ) : null}
+            <div className="flex gap-3">
+              <Button variant={you?.ready ? "ghost" : "primary"} onClick={toggleReady} className="flex-1 justify-center">
+                {you?.ready ? "Not ready" : "I'm ready"}
               </Button>
-            )}
+              {you?.isHost && (
+                <Button
+                  variant="primary"
+                  disabled={!canStart}
+                  onClick={startGame}
+                  className="flex-1 justify-center disabled:opacity-40"
+                >
+                  Start game
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -309,8 +333,8 @@ export default function LobbyPage() {
             {messages.length > 0 ? (
               messages.map((m, i) => (
                 <div key={i} className="text-[13.5px]">
-                  <span className="font-semibold text-secondary">{m.name}: </span>
-                  <span className="text-white/[0.85]">{m.text}</span>
+                  <span className={`font-semibold ${m.system ? 'text-muted' : 'text-secondary'}`}>{m.name}: </span>
+                  <span className={m.system ? 'text-white/70' : 'text-white/[0.85]'}>{m.text}</span>
                 </div>
               ))
             ) : null}

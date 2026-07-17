@@ -7,7 +7,9 @@ import Button from "../../../components/common/Button.jsx";
 import { PUBLIC_ROOMS } from "../../../constants/appData.js";
 import { getCurrentUser, getUserToken } from "../../../utils/auth.js";
 
-const PLAYER_COUNTS = [2, 4, 6, 8];
+const PLAYER_COUNTS = [2, 4, 6];
+const MIN_PLAYERS_TO_START = 2;
+const MAX_PLAYERS_PER_ROOM = 6;
 
 function Field({ label, children }) {
   return (
@@ -87,6 +89,12 @@ export default function RoomSetupPage() {
   async function handleCreate(e) {
     e.preventDefault();
     setSubmitError(null);
+
+    if (players < MIN_PLAYERS_TO_START) {
+      setSubmitError(`Select at least ${MIN_PLAYERS_TO_START} players to create a room.`);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -200,6 +208,7 @@ export default function RoomSetupPage() {
 
           <Field label="Max players">
             <PillGroup options={PLAYER_COUNTS} value={players} onChange={setPlayers} />
+            <p className="mt-2 text-[12px] text-muted">Supports up to {MAX_PLAYERS_PER_ROOM} players, and the room requires at least {MIN_PLAYERS_TO_START} players before the game can start.</p>
           </Field>
 
           <Field label={`Rounds — ${rounds}`}>

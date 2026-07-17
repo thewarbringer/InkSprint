@@ -9,6 +9,7 @@ const categories = require('./categories.json')
 const User = require('./models/User')
 const { initWebsocket, broadcastToRoom } = require('./wsServer.js')
 const { updateUserGameHistory } = require('./utils/gameHistory')
+const { buildRankedResults } = require('./utils/gameResults')
 
 const app = express()
 
@@ -45,24 +46,30 @@ const getRandomWord = () => {
 };
 
 const archiveGameAsEnded = async (game) => {
-    const winnerUsername = getWinner(game.players || []);
-    const endedGame = new EndedGame({
-        roomId: game.roomId,
-        roomName: game.roomName,
-        maxPlayers: game.maxPlayers,
-        rounds: game.rounds,
-        privateRoom: game.privateRoom,
-        state: 'ended',
-        winner: winnerUsername,
-        players: (game.players || []).map((player) => ({
-            username: player.username,
-            scores: player.scores || 0,
-            hold: Boolean(player.hold),
-        })),
-    });
+    const rankedResults = buildRankedResults(game.players || []);
+    const topIsDraw = rankedResults.length > 0 && rankedResults[0]?.isDraw;
+    const winnerUsername = topIsDraw ? null : (rankedResults[0]?.username || null);
+    
+    await EndedGame.findOneAndUpdate(
+        { roomId: game.roomId },
+        {
+            roomId: game.roomId,
+            roomName: game.roomName,
+            maxPlayers: game.maxPlayers,
+            rounds: game.rounds,
+            privateRoom: game.privateRoom,
+            state: 'ended',
+            winner: winnerUsername,
+            players: (game.players || []).map((player) => ({
+                username: player.username,
+                scores: player.scores || 0,
+                hold: Boolean(player.hold),
+            })),
+        },
+        { upsert: true, new: true }
+    );
 
-    await endedGame.save();
-    await updateUserGameHistory(User, game, winnerUsername);
+    await updateUserGameHistory(User, game, winnerUsername, rankedResults);
     await ActiveGame.deleteOne({ _id: game._id });
 };
 

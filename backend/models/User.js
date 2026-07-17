@@ -18,7 +18,7 @@ const gameHistoryEntrySchema = new mongoose.Schema({
   },
   result: {
     type: String,
-    enum: ['win', 'loss'],
+    enum: ['win', 'loss', 'draw'],
     required: true,
   },
   score: {

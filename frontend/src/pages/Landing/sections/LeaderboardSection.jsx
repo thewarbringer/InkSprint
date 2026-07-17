@@ -30,7 +30,7 @@ export default function LeaderboardSection() {
             {LEADERBOARD.map((player, i) => (
               <div
                 key={player.name}
-                className={`grid grid-cols-[36px_1fr_70px] items-center gap-3 px-6 py-4 transition-colors hover:bg-white/[0.03] sm:grid-cols-[50px_1fr_100px_100px] ${
+                className={`grid grid-cols-[36px_1fr] items-center gap-3 px-6 py-4 transition-colors hover:bg-white/[0.03] sm:grid-cols-[50px_1fr_100px] ${
                   i !== LEADERBOARD.length - 1 ? "border-b border-white/[0.08]" : ""
                 }`}
               >
@@ -48,7 +48,6 @@ export default function LeaderboardSection() {
                     <div className="text-[12px] text-muted">{player.tier}</div>
                   </div>
                 </div>
-                <div className="text-right font-mono text-[14px]">{player.xp}</div>
                 <div className="hidden text-right text-[13px] text-success sm:block">
                   {player.wr}
                 </div>

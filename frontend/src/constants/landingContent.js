@@ -52,16 +52,16 @@ export const STEPS = [
   {
     num: "03",
     title: "First correct call wins",
-    desc: "The moment any player's AI crosses the confidence threshold, the round ends and XP is awarded instantly.",
+    desc: "The moment any player's AI crosses the confidence threshold, the round ends and the winner is declared instantly.",
   },
 ];
 
 export const LEADERBOARD = [
-  { rank: 1, name: "nova.exe", tier: "Diamond III", xp: "28,410 XP", wr: "72% WR", grad: "from-warning to-danger" },
-  { rank: 2, name: "quickpen", tier: "Diamond II", xp: "26,980 XP", wr: "69% WR", grad: "from-secondary to-primary" },
-  { rank: 3, name: "sketchbolt", tier: "Diamond II", xp: "25,120 XP", wr: "65% WR", grad: "from-accent to-success" },
-  { rank: 4, name: "inkling_ai", tier: "Platinum I", xp: "23,760 XP", wr: "63% WR", grad: "from-danger to-accent" },
-  { rank: 5, name: "rapidraw", tier: "Platinum I", xp: "22,310 XP", wr: "61% WR", grad: "from-success to-secondary" },
+  { rank: 1, name: "nova.exe", tier: "Diamond III", wr: "72% WR", grad: "from-warning to-danger" },
+  { rank: 2, name: "quickpen", tier: "Diamond II", wr: "69% WR", grad: "from-secondary to-primary" },
+  { rank: 3, name: "sketchbolt", tier: "Diamond II", wr: "65% WR", grad: "from-accent to-success" },
+  { rank: 4, name: "inkling_ai", tier: "Platinum I", wr: "63% WR", grad: "from-danger to-accent" },
+  { rank: 5, name: "rapidraw", tier: "Platinum I", wr: "61% WR", grad: "from-success to-secondary" },
 ];
 
 export const TESTIMONIALS = [

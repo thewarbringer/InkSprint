@@ -5,7 +5,7 @@ import { Award, Crown } from "lucide-react";
 import AppShell from "../../../components/layout/AppShell.jsx";
 import Button from "../../../components/common/Button.jsx";
 import { Avatar } from "../../../components/common/UIAtoms.jsx";
-import { getUserToken } from "../../../utils/auth.js";
+import { getUserToken, getCurrentUser } from "../../../utils/auth.js";
 
 export default function ResultsPage() {
   const { roomCode } = useParams();
@@ -36,27 +36,41 @@ export default function ResultsPage() {
           throw new Error('No game data found.');
         }
 
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        const currentUsername = currentUser?.username;
-        const winner = (game.players || []).reduce((leader, player) => {
-          if (!leader) return player;
-          return (player.scores || 0) > (leader.scores || 0) ? player : leader;
-        }, null)?.username || null;
+        const currentUser = getCurrentUser() || {};
+        const currentUsername = (currentUser?.username || '').toLowerCase();
+        const sortedPlayers = [...(game.players || [])]
+          .filter(Boolean)
+          .sort((a, b) => (b.scores || 0) - (a.scores || 0));
+        const winner = sortedPlayers[0]?.username || null;
+        const standings = sortedPlayers.map((player, index) => {
+          const placement = index + 1;
+          return {
+            rank: placement,
+            name: player.username,
+            score: player.scores || 0,
+            isDraw: false,
+            isYou: (player.username || '').toLowerCase() === currentUsername,
+          };
+        });
+
+        const tiedPlayers = standings.filter((entry) => entry.score === standings[0]?.score && standings[0]?.score !== undefined);
+        const isTie = tiedPlayers.length > 1;
+
+        if (isTie) {
+          standings.forEach((entry) => {
+            if (entry.score === standings[0]?.score) {
+              entry.isDraw = true;
+            }
+          });
+        }
 
         setResultData({
           winner,
           isYou: winner === currentUsername,
-          word: 'ROCKET',
+          word: game.currentWord || 'ROCKET',
           recognitionTime: '0.8s',
-          xpGained: 140,
-          newXpTotal: 27120,
           achievementsUnlocked: [],
-          standings: (game.players || []).map((player, index) => ({
-            rank: index + 1,
-            name: player.username,
-            score: player.scores || 0,
-            isYou: player.username === currentUsername,
-          })),
+          standings,
         });
       } catch (err) {
         console.error(err);
@@ -102,10 +116,17 @@ export default function ResultsPage() {
             className="mb-6 rounded-2xl border border-white/[0.08] bg-gradient-to-br from-success/[0.14] to-secondary/[0.06] p-8 text-center"
           >
             <Crown className="mx-auto mb-3 text-warning" size={28} />
-            <div className="mb-1 text-[13px] uppercase tracking-[0.06em] text-muted">
-              {r.isYou ? "You won the game" : `${r.winner || 'No winner'} won the game`}
+            <div className={`mb-1 text-[13px] uppercase tracking-[0.06em] ${r.standings?.some((entry) => entry.isDraw) ? 'text-warning' : 'text-muted'}`}>
+              {r.standings?.some((entry) => entry.isDraw)
+                ? 'It was a draw'
+                : (r.isYou ? 'You won the game' : `${r.winner || 'No winner'} won the game`)}
             </div>
-            
+            <div className="text-[32px] font-semibold text-white">
+              {r.standings?.find((entry) => entry.isYou)?.score ?? 0} pts
+            </div>
+            <div className="mt-2 text-[13px] text-muted">
+              Position-based reward • {r.standings?.find((entry) => entry.isYou)?.rank ?? 1} place
+            </div>
           </motion.div>
 
           {r.achievementsUnlocked.length > 0 && (
@@ -147,7 +168,12 @@ export default function ResultsPage() {
                   <Avatar name={s.name} size={30} />
                   <span className="text-[13.5px] font-medium">{s.name}</span>
                 </div>
-                <span className="font-mono text-[13.5px]">{s.score} pts</span>
+                <div className="text-right">
+                  <div className={`font-mono text-[13.5px] ${s.isDraw ? 'text-warning' : 'text-white'}`}>
+                    {s.isDraw ? 'Draw' : `${s.rank}${s.rank === 1 ? 'st' : s.rank === 2 ? 'nd' : s.rank === 3 ? 'rd' : 'th'}`}
+                  </div>
+                  <div className="font-mono text-[12px] text-muted">{s.score} pts</div>
+                </div>
               </div>
             ))}
           </div>
